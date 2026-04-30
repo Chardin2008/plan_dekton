@@ -1,0 +1,40 @@
+:root {
+  --black-950: #030303;
+  --black-900: #070707;
+  --graphite: #1D1D1B;
+  --stone-white: #F4F1EA;
+  --soft-gray: #B8B2A8;
+  --champagne: #C9A76A;
+  --border-soft: rgba(255, 255, 255, 0.12);
+}
+
+.editor-styles-wrapper {
+  color: var(--stone-white);
+  background: var(--black-900);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.editor-styles-wrapper h1,
+.editor-styles-wrapper h2,
+.editor-styles-wrapper h3 {
+  color: var(--stone-white);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: .95;
+}
+
+.editor-styles-wrapper p {
+  color: var(--soft-gray);
+}
+
+.pds-pattern {
+  padding: 36px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
+}
+
+.pds-pattern h1,
+.pds-pattern h2 {
+  margin-top: 0;
+}

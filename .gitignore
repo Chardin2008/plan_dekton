@@ -1,0 +1,12 @@
+.env
+.qa/
+
+# WordPress/runtime exports
+*.wpress
+*.sql
+*.zip
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
