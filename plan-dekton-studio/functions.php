@@ -10,7 +10,7 @@ if (! defined('ABSPATH')) {
 }
 
 define('PDS_THEME_VERSION', '1.0.21');
-define('PDS_QUOTE_RECIPIENT', 'chardinpoutcheu@gmail.com');
+define('PDS_QUOTE_RECIPIENT', 'hello@mpc.contact');
 
 function pds_setup(): void
 {
