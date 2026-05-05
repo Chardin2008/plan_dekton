@@ -12,6 +12,9 @@ if (! defined('ABSPATH')) {
 define('PDS_THEME_VERSION', '1.0.21');
 define('PDS_QUOTE_RECIPIENT', 'hello@mpc.contact');
 define('PDS_CF7_FORM_TITLE', 'Demande de devis Plan Dekton');
+define('PDS_HOME_FOCUS_KEYPHRASE', 'plan de travail dekton');
+define('PDS_HOME_SEO_TITLE', 'Plan de travail Dekton sur mesure | Plan Dekton Studio');
+define('PDS_HOME_META_DESCRIPTION', 'Découvrez nos plans de travail Dekton sur mesure pour cuisine, îlot central, crédence, salle de bain et projets premium. Demandez un devis personnalisé.');
 
 function pds_setup(): void
 {
@@ -248,6 +251,25 @@ function pds_quote_form_shortcode(): string
 }
 add_shortcode('pds_quote_form', 'pds_quote_form_shortcode');
 
+function pds_configure_homepage_seo(int $page_id): void
+{
+    if ($page_id <= 0) {
+        return;
+    }
+
+    $meta_defaults = array(
+        '_yoast_wpseo_focuskw' => PDS_HOME_FOCUS_KEYPHRASE,
+        '_yoast_wpseo_title'   => PDS_HOME_SEO_TITLE,
+        '_yoast_wpseo_metadesc' => PDS_HOME_META_DESCRIPTION,
+    );
+
+    foreach ($meta_defaults as $meta_key => $value) {
+        if ('' === (string) get_post_meta($page_id, $meta_key, true)) {
+            update_post_meta($page_id, $meta_key, $value);
+        }
+    }
+}
+
 function pds_seed_homepage_if_missing(): void
 {
     if (! is_admin() || wp_doing_ajax() || ! current_user_can('edit_pages')) {
@@ -274,6 +296,8 @@ function pds_seed_homepage_if_missing(): void
             update_option('show_on_front', 'page');
             update_option('page_on_front', (int) $front_page->ID);
         }
+
+        pds_configure_homepage_seo((int) $front_page->ID);
 
         return;
     }
@@ -316,6 +340,7 @@ function pds_seed_homepage_if_missing(): void
 
     update_option('show_on_front', 'page');
     update_option('page_on_front', (int) $page_id);
+    pds_configure_homepage_seo((int) $page_id);
     delete_option('pds_homepage_seed_error');
 }
 add_action('admin_init', 'pds_seed_homepage_if_missing');
