@@ -215,17 +215,25 @@
     const steps = $$('.form-step', form);
     const prev = $('[data-prev]', form);
     const next = $('[data-next]', form);
-    const submit = $('[data-submit]', form);
+    const submit = $('[data-submit]', form) || $('.wpcf7-submit', form);
     const label = $('[data-form-step-label]', form);
     const progress = $('[data-form-progress]', form);
     const message = $('[data-form-message]', form);
     let current = 0;
     const submitLabel = submit?.textContent || 'Envoyer la demande';
 
+    const getRequiredFields = (root) => {
+      const fields = $$('[required], [aria-required="true"]', root);
+      $$('.wpcf7-validates-as-required input, .wpcf7-validates-as-required textarea', root).forEach((field) => {
+        if (!fields.includes(field)) fields.push(field);
+      });
+      return fields;
+    };
+
     const validateStep = () => {
       const active = steps[current];
       if (!active) return true;
-      const required = $$('[required]', active);
+      const required = getRequiredFields(active);
       const radios = required.filter((field) => field.type === 'radio');
       const other = required.filter((field) => field.type !== 'radio');
       const radioValid = !radios.length || radios.some((field) => field.checked);
@@ -267,6 +275,11 @@
     });
 
     form.addEventListener('submit', async (event) => {
+      if (form.classList.contains('wpcf7-form')) {
+        if (!validateForm()) event.preventDefault();
+        return;
+      }
+
       event.preventDefault();
       if (!validateForm()) return;
 

@@ -10,6 +10,18 @@
 
 get_header();
 
+if (is_page() && have_posts()) {
+    the_post();
+
+    if (trim(get_the_content()) !== '') {
+        echo do_shortcode(get_the_content(null, false)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        get_footer();
+        return;
+    }
+
+    rewind_posts();
+}
+
 $img = static function (string $file): string {
     return get_theme_file_uri('assets/img/' . $file);
 };

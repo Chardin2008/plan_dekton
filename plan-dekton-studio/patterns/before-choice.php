@@ -5,5 +5,18 @@
  * Categories: plan-dekton-studio
  */
 ?>
-<!-- wp:group {"className":"pds-pattern","layout":{"type":"constrained"}} --><div class="wp-block-group pds-pattern"><!-- wp:heading --><h2>Avant de choisir votre plan Dekton</h2><!-- /wp:heading --><!-- wp:list --><ul><li>Vous cuisinez souvent ?</li><li>Votre cuisine est-elle sombre ou lumineuse ?</li><li>Votre plan sera-t-il exposé au soleil ?</li></ul><!-- /wp:list --></div><!-- /wp:group -->
-
+<!-- wp:html -->
+<section class="before-choice pds-section section-calm" aria-labelledby="before-title">
+    <div class="section-heading reveal">
+        <p class="eyebrow">Avant de choisir votre plan Dekton</p>
+        <h2 id="before-title">Quatre questions pour préparer un devis précis.</h2>
+    </div>
+    <div class="question-grid">
+                    <article class="question-card reveal"><span aria-hidden="true">✦</span><h3>Quelles dimensions approximatives ?</h3></article>
+                    <article class="question-card reveal"><span aria-hidden="true">✦</span><h3>Évier, plaque ou prises à intégrer ?</h3></article>
+                    <article class="question-card reveal"><span aria-hidden="true">✦</span><h3>Crédence assortie ou plan seul ?</h3></article>
+                    <article class="question-card reveal"><span aria-hidden="true">✦</span><h3>Effet marbre, béton, pierre ou métal ?</h3></article>
+            </div>
+    <a class="btn btn-secondary reveal" href="#devis">Préparer mon devis</a>
+</section>
+<!-- /wp:html -->
