@@ -15,13 +15,19 @@ docker compose up -d
 Local URL:
 
 ```text
-http://localhost:8090
+http://localhost:8092
 ```
 
 The custom theme is mounted from:
 
 ```text
 plan-dekton-studio/
+```
+
+If an older local copy is still running, it may be available on:
+
+```text
+http://localhost:8090
 ```
 
 ## Production

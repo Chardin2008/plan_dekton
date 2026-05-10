@@ -45,7 +45,20 @@ $image_dimensions = array(
     'gallery-6.jpg'                => array('1536', '1024'),
 );
 
-$picture = static function (string $file, string $alt, string $width, string $height, array $attrs = array()) use ($img, $image_dimensions): void {
+$picture = static function ($file, string $alt, string $width, string $height, array $attrs = array()) use ($img, $image_dimensions): void {
+    if (is_numeric($file) && (int) $file > 0) {
+        if (! isset($attrs['decoding'])) {
+            $attrs['decoding'] = 'async';
+        }
+
+        $attrs['alt']    = $alt;
+        $attrs['width']  = $width;
+        $attrs['height'] = $height;
+
+        echo wp_get_attachment_image((int) $file, 'full', false, $attrs); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        return;
+    }
+
     $webp = preg_replace('/\.jpe?g$/i', '.webp', $file);
     $attr_markup = '';
 
@@ -73,12 +86,102 @@ $picture = static function (string $file, string $alt, string $width, string $he
     );
 };
 
+$acf_text = static function (string $name, string $fallback): string {
+    if (! function_exists('get_field')) {
+        return $fallback;
+    }
+
+    $value = get_field($name);
+
+    return is_string($value) && '' !== trim($value) ? $value : $fallback;
+};
+
+$section_enabled = static function (string $name): bool {
+    if (! function_exists('get_field')) {
+        return true;
+    }
+
+    $value = get_field($name);
+
+    return '0' !== (string) $value;
+};
+
+$acf_json = static function (string $name, array $fallback): array {
+    if (! function_exists('get_field')) {
+        return $fallback;
+    }
+
+    $value = get_field($name);
+    if (! is_string($value) || '' === trim($value)) {
+        return $fallback;
+    }
+
+    $decoded = json_decode($value, true);
+
+    return is_array($decoded) ? $decoded : $fallback;
+};
+
+$acf_image = static function (string $name, string $fallback) {
+    if (! function_exists('get_field')) {
+        return $fallback;
+    }
+
+    $value = get_field($name);
+    if (! is_numeric($value) || (int) $value <= 0) {
+        return $fallback;
+    }
+
+    $file = get_attached_file((int) $value);
+    if (is_string($file) && basename($file) === $fallback) {
+        return $fallback;
+    }
+
+    return (int) $value;
+};
+
+$acf_file = static function (array $item, string $fallback = '') {
+    if (isset($item['image_id']) && (int) $item['image_id'] > 0) {
+        $file = get_attached_file((int) $item['image_id']);
+        if (! is_string($file) || basename($file) !== ($item['image'] ?? '')) {
+            return (int) $item['image_id'];
+        }
+    }
+
+    return $item['image'] ?? $fallback;
+};
+
+$hero = array(
+    'eyebrow'         => $acf_text('pds_hero_eyebrow', 'Studio de surfaces premium'),
+    'title_line_1'    => $acf_text('pds_hero_title_line_1', 'Surface'),
+    'title_line_2'    => $acf_text('pds_hero_title_line_2', 'nouvelle'),
+    'title_line_3'    => $acf_text('pds_hero_title_line_3', 'génération'),
+    'lead'            => $acf_text('pds_hero_lead', 'Des surfaces premium pour cuisines, îlots, salles de bain et projets architecturaux.'),
+    'primary_label'   => $acf_text('pds_hero_primary_button_label', 'Demander un devis'),
+    'primary_url'     => $acf_text('pds_hero_primary_button_url', '#devis'),
+    'secondary_label' => $acf_text('pds_hero_secondary_button_label', 'Explorer les matières'),
+    'secondary_url'   => $acf_text('pds_hero_secondary_button_url', '#matieres'),
+    'image'           => $acf_image('pds_hero_visual_image', 'hero-dekton.jpg'),
+    'material_tag'    => $acf_text('pds_hero_material_tag', 'Dekton · plan de travail · îlot · crédence'),
+    'proof_items'     => $acf_json('pds_hero_proof_items', array('Étude du projet', 'Choix de finition', 'Devis accompagné')),
+);
+
+$surface = array(
+    'eyebrow' => $acf_text('pds_surface_intelligence_eyebrow', 'Surface Intelligence'),
+    'title'   => $acf_text('pds_surface_intelligence_title', 'Une surface pensée pour les espaces exigeants.'),
+    'intro'   => $acf_text('pds_surface_intelligence_intro', 'Dekton permet de concevoir un plan esthétique et technique : dimensions, découpes, chants, crédence et intégration de l’évier doivent être anticipés dès le brief.'),
+    'badges'  => $acf_json('pds_surface_intelligence_badges', array('Résistance quotidienne', 'Finition architecturale', 'Entretien facilité')),
+);
+
 $features = array(
     array('01', 'Chaleur', 'Une surface pensée pour les casseroles, plaques chaudes et usages intensifs du quotidien.'),
     array('02', 'Rayures', 'Une matière adaptée aux plans sollicités, à condition de respecter les bons gestes de coupe.'),
     array('03', 'Taches', 'Un entretien simple avec une éponge douce, de l’eau chaude et un produit adapté.'),
     array('04', 'UV', 'Une option pertinente pour certains projets lumineux ou extérieurs selon l’exposition et la pose.'),
     array('05', 'Usage intensif', 'Un choix durable pour cuisines familiales, îlots centraux, crédences et espaces très utilisés.'),
+);
+$features = array_map(
+    static fn (array $item): array => array($item['number'] ?? '', $item['title'] ?? '', $item['text'] ?? ''),
+    $acf_json('pds_surface_intelligence_cards', $features)
 );
 
 $materials = array(
@@ -89,6 +192,10 @@ $materials = array(
     array('Brun terre', 'bois, argile et chaleur', 'Une teinte profonde pour des intérieurs enveloppants.', 'texture-brun-terre.jpg'),
     array('Métal oxydé', 'industriel chic', 'Une finition expressive pour les projets audacieux.', 'texture-metal-oxyde.jpg'),
 );
+$materials = array_map(
+    static fn (array $item): array => array($item['title'] ?? '', $item['subtitle'] ?? '', $item['text'] ?? '', $acf_file($item, '')),
+    $acf_json('pds_material_lab_materials', $materials)
+);
 
 $applications = array(
     array('Plan de travail cuisine', 'Une surface sur mesure avec découpes pour évier, plaque de cuisson et prises selon le projet.', 'gallery-1.jpg'),
@@ -98,32 +205,207 @@ $applications = array(
     array('Table sur mesure', 'Une pièce forte à penser selon le piètement, l’épaisseur, les chants et l’usage quotidien.', 'gallery-5.jpg'),
     array('Extérieur', 'Une solution à étudier selon l’exposition, le support, les joints et les contraintes de pose.', 'gallery-6.jpg'),
 );
+$applications = array_map(
+    static fn (array $item): array => array($item['title'] ?? '', $item['text'] ?? '', $acf_file($item, '')),
+    $acf_json('pds_applications_items', $applications)
+);
 
 $commitments = array(
     array('Conseil matière', 'Nous guidons le choix du coloris, du veinage et de la finition selon la lumière, l’usage et le style de votre pièce.'),
     array('Projet sur mesure', 'Chaque demande est étudiée selon les dimensions, les découpes, le type de chant, l’évier, la crédence et les contraintes de pose.'),
     array('Devis qualifié', 'Le formulaire sert de brief projet : vous recevez une réponse plus précise, avec les informations utiles pour avancer sereinement.'),
 );
+$commitments = array_map(
+    static fn (array $item): array => array($item['title'] ?? '', $item['text'] ?? ''),
+    $acf_json('pds_commercial_proof_cards', $commitments)
+);
+
+$commercial = array(
+    'eyebrow'         => $acf_text('pds_commercial_proof_eyebrow', 'Accompagnement projet'),
+    'title'           => $acf_text('pds_commercial_proof_title', 'Un plan Dekton se choisit avec précision.'),
+    'intro'           => $acf_text('pds_commercial_proof_intro', 'Au-delà de l’image, nous aidons à cadrer les éléments qui font la différence : usage, dimensions, finitions, contraintes techniques et rendu final.'),
+    'primary_label'   => $acf_text('pds_commercial_proof_primary_button_label', 'Préparer mon devis'),
+    'primary_url'     => $acf_text('pds_commercial_proof_primary_button_url', '#devis'),
+    'secondary_label' => $acf_text('pds_commercial_proof_secondary_button_label', 'Comparer les matières'),
+    'secondary_url'   => $acf_text('pds_commercial_proof_secondary_button_url', '#matieres'),
+);
+
+$scanner = array(
+    'eyebrow'     => $acf_text('pds_material_scanner_eyebrow', 'Material Scanner'),
+    'title'       => $acf_text('pds_material_scanner_title', 'Analysez la surface idéale pour votre projet.'),
+    'intro'       => $acf_text('pds_material_scanner_intro', 'Couleur, veinage, finition, épaisseur et usage quotidien : chaque choix influence le rendu, l’entretien et le budget final.'),
+    'image'       => $acf_image('pds_material_scanner_image', 'texture-noir-veine.jpg'),
+    'panel_title' => $acf_text('pds_material_scanner_default_panel_title', 'Veinage'),
+    'panel_text'  => $acf_text('pds_material_scanner_default_panel_text', 'Un effet minéral profond pour donner du caractère au plan de travail.'),
+    'points'      => $acf_json('pds_material_scanner_points', array(
+        array('title' => 'Veinage', 'x' => '28%', 'y' => '38%', 'text' => 'Un effet minéral profond pour donner du caractère au plan de travail.'),
+        array('title' => 'Finition', 'x' => '58%', 'y' => '25%', 'text' => 'Une surface élégante pensée pour un rendu contemporain.'),
+        array('title' => 'Résistance', 'x' => '70%', 'y' => '58%', 'text' => 'Une matière adaptée aux usages exigeants du quotidien.'),
+        array('title' => 'Ambiance', 'x' => '36%', 'y' => '70%', 'text' => 'Une présence visuelle forte pour les cuisines premium.'),
+        array('title' => 'Usage conseillé', 'x' => '78%', 'y' => '78%', 'text' => 'Idéal pour plan de travail, îlot central, crédence ou projet sur mesure.'),
+    )),
+);
+
+$material_lab = array(
+    'eyebrow' => $acf_text('pds_material_lab_eyebrow', 'Le laboratoire des matières'),
+    'title'   => $acf_text('pds_material_lab_title', 'Un showroom digital pour comparer les signatures.'),
+    'intro'   => $acf_text('pds_material_lab_intro', 'Chaque finition raconte une ambiance : profondeur sombre, lumière minérale, béton urbain ou chaleur organique.'),
+);
+
+$moodboard = array(
+    'eyebrow' => $acf_text('pds_moodboard_eyebrow', 'Moodboard dynamique'),
+    'title'   => $acf_text('pds_moodboard_title', 'Composez une ambiance, pas seulement un plan.'),
+    'tabs'    => $acf_json('pds_moodboard_tabs', array(
+        array('key' => 'obsidian', 'title' => 'Obsidian Luxury', 'style' => 'luxe architectural', 'image' => 'ambiance-obsidian.jpg'),
+        array('key' => 'mineral', 'title' => 'Mineral White', 'style' => 'minimalisme lumineux', 'image' => 'ambiance-mineral.jpg'),
+        array('key' => 'urban', 'title' => 'Urban Stone', 'style' => 'contemporain architectural', 'image' => 'ambiance-urban.jpg'),
+    )),
+);
+$active_mood = $moodboard['tabs'][0] ?? array();
+$active_mood_image = $acf_file($active_mood, 'ambiance-obsidian.jpg');
+
+$configurator = array(
+    'eyebrow'       => $acf_text('pds_project_configurator_eyebrow', 'Configurateur de projet'),
+    'title'         => $acf_text('pds_project_configurator_title', 'Quel plan Dekton correspond à votre espace ?'),
+    'questions'     => $acf_json('pds_project_configurator_questions', array(
+        array('key' => 'project', 'question' => 'Quel est votre projet ?', 'choices' => array('Cuisine', 'Îlot central', 'Salle de bain', 'Extérieur')),
+        array('key' => 'style', 'question' => 'Quel style préférez-vous ?', 'choices' => array('Sombre', 'Clair', 'Pierre', 'Béton', 'Métal')),
+        array('key' => 'mood', 'question' => 'Quelle ambiance recherchez-vous ?', 'choices' => array('Luxe', 'Minimaliste', 'Naturelle', 'Industrielle')),
+    )),
+    'default_result' => $acf_text('pds_project_configurator_default_result', 'Votre ambiance recommandée : Obsidian Luxury'),
+    'button_label'   => $acf_text('pds_project_configurator_button_label', 'Demander un devis pour cette ambiance'),
+    'button_url'     => $acf_text('pds_project_configurator_button_url', '#devis'),
+);
+
+$before_choice = array(
+    'eyebrow'      => $acf_text('pds_before_choice_eyebrow', 'Avant de choisir votre plan Dekton'),
+    'title'        => $acf_text('pds_before_choice_title', 'Quatre questions pour préparer un devis précis.'),
+    'questions'    => $acf_json('pds_before_choice_questions', array('Quelles dimensions approximatives ?', 'Évier, plaque ou prises à intégrer ?', 'Crédence assortie ou plan seul ?', 'Effet marbre, béton, pierre ou métal ?')),
+    'button_label' => $acf_text('pds_before_choice_button_label', 'Préparer mon devis'),
+    'button_url'   => $acf_text('pds_before_choice_button_url', '#devis'),
+);
+
+$applications_meta = array(
+    'eyebrow' => $acf_text('pds_applications_eyebrow', 'Une matière, plusieurs espaces'),
+    'title'   => $acf_text('pds_applications_title', 'Des usages pensés comme des pièces de design.'),
+);
+
+$signatures = array_map(
+    static fn (array $item): array => array($item['number'] ?? '', $item['title'] ?? '', $item['text'] ?? '', $acf_file($item, '')),
+    $acf_json('pds_signatures_items', array(
+        array('number' => '01', 'title' => 'Obsidian Luxury', 'text' => 'Noir profond, veines dorées, bois noyer et lumière chaude pour une cuisine au caractère affirmé.', 'image' => 'ambiance-obsidian.jpg'),
+        array('number' => '02', 'title' => 'Mineral White', 'text' => 'Blanc veiné, meubles clairs et lumière naturelle pour un espace lumineux, propre et intemporel.', 'image' => 'ambiance-mineral.jpg'),
+        array('number' => '03', 'title' => 'Urban Stone', 'text' => 'Gris béton, noir mat et lignes tendues pour une atmosphère contemporaine et architecturale.', 'image' => 'ambiance-urban.jpg'),
+    ))
+);
+$signatures_meta = array(
+    'eyebrow' => $acf_text('pds_signatures_eyebrow', 'Signatures visuelles'),
+    'title'   => $acf_text('pds_signatures_title', 'Trois directions artistiques fortes.'),
+);
+
+$comparator = array(
+    'eyebrow'  => $acf_text('pds_comparator_eyebrow', 'Dekton vs surface classique'),
+    'title'    => $acf_text('pds_comparator_title', 'Les bons critères avant de choisir.'),
+    'criteria' => $acf_json('pds_comparator_criteria', array('chaleur', 'rayures', 'taches', 'extérieur', 'rendu esthétique', 'entretien')),
+);
+
+$process = array(
+    'eyebrow' => $acf_text('pds_process_eyebrow', 'De l’idée à la surface finale'),
+    'title'   => $acf_text('pds_process_title', 'Un déroulé clair, du brief à la pose.'),
+    'steps'   => $acf_json('pds_process_steps', array('Brief et dimensions', 'Choix du coloris', 'Validation des découpes', 'Prise de cotes précise', 'Fabrication du plan', 'Pose et finitions')),
+);
+
+$details = array(
+    'eyebrow'         => $acf_text('pds_details_eyebrow', 'Les détails invisibles font le luxe visible'),
+    'title'           => $acf_text('pds_details_title', 'Les choix techniques qui changent le résultat.'),
+    'items'           => $acf_json('pds_details_items', array('Épaisseur du plan', 'Type de chant', 'Finition mate ou satinée', 'Évier sous plan ou posé', 'Crédence assortie', 'Arrondis et découpes spéciales')),
+    'primary_label'   => $acf_text('pds_details_primary_button_label', 'Valider ces détails'),
+    'primary_url'     => $acf_text('pds_details_primary_button_url', '#devis'),
+    'secondary_label' => $acf_text('pds_details_secondary_button_label', 'Voir le processus'),
+    'secondary_url'   => $acf_text('pds_details_secondary_button_url', '#processus'),
+);
+
+$gallery = array_map(
+    static fn (array $item): array => array($item['label'] ?? '', $acf_file($item, '')),
+    $acf_json('pds_gallery_items', array(
+        array('label' => 'Cuisine', 'image' => 'gallery-1.jpg'),
+        array('label' => 'Îlot', 'image' => 'gallery-2.jpg'),
+        array('label' => 'Salle de bain', 'image' => 'gallery-3.jpg'),
+        array('label' => 'Crédence', 'image' => 'gallery-4.jpg'),
+        array('label' => 'Détail matière', 'image' => 'gallery-5.jpg'),
+        array('label' => 'Extérieur', 'image' => 'gallery-6.jpg'),
+    ))
+);
+$gallery_meta = array(
+    'eyebrow' => $acf_text('pds_gallery_eyebrow', 'Galerie d’inspirations'),
+    'title'   => $acf_text('pds_gallery_title', 'Des cadrages pour se projeter.'),
+);
+
+$faqs = array();
+foreach ($acf_json('pds_faq_questions', array(
+    array('question' => 'Quelles informations faut-il pour un devis ?', 'answer' => 'Les dimensions approximatives, le type de projet, le style souhaité, les découpes prévues, la présence d’une crédence et vos contraintes de pose.'),
+    array('question' => 'Dekton résiste-t-il à la chaleur ?', 'answer' => 'Dekton offre une très bonne résistance à la chaleur dans les usages courants, mais le projet doit toujours être validé selon la pose et les contraintes réelles.'),
+    array('question' => 'Peut-on intégrer un évier ou une plaque ?', 'answer' => 'Oui, les découpes peuvent être prévues pour évier, plaque de cuisson, robinetterie ou prises, avec une validation technique avant fabrication.'),
+    array('question' => 'Est-ce facile à entretenir ?', 'answer' => 'Oui, l’entretien courant se fait avec de l’eau chaude, une éponge douce et un produit adapté, en évitant les gestes abrasifs inutiles.'),
+    array('question' => 'Peut-on avoir un plan Dekton sur mesure ?', 'answer' => 'Oui, le plan peut être étudié selon les dimensions, l’épaisseur, le type de chant, la finition, les découpes et la crédence souhaitée.'),
+)) as $faq) {
+    if (isset($faq['question'], $faq['answer'])) {
+        $faqs[$faq['question']] = $faq['answer'];
+    }
+}
+$faq_meta = array(
+    'eyebrow' => $acf_text('pds_faq_eyebrow', 'Questions fréquentes'),
+    'title'   => $acf_text('pds_faq_title', 'Les réponses utiles avant de demander un devis.'),
+);
+
+$reviews = array_map(
+    static fn (array $item): array => array($item['name'] ?? '', $item['project'] ?? '', $item['text'] ?? ''),
+    $acf_json('pds_testimonials_reviews', array(
+        array('name' => 'Nadia M.', 'project' => 'Cuisine avec îlot central', 'text' => 'Le rendu est élégant, solide et vraiment haut de gamme. Le plan a changé toute l’ambiance de la cuisine.'),
+        array('name' => 'Thomas R.', 'project' => 'Rénovation cuisine', 'text' => 'Le plan Dekton apporte un style beaucoup plus moderne. La pièce paraît plus structurée et plus premium.'),
+        array('name' => 'Sarah L.', 'project' => 'Salle de bain', 'text' => 'Le résultat est propre, contemporain et facile à entretenir. C’est exactement l’ambiance que je voulais.'),
+    ))
+);
+$testimonials_meta = array(
+    'eyebrow' => $acf_text('pds_testimonials_eyebrow', '4.9/5 · témoignages clients'),
+    'title'   => $acf_text('pds_testimonials_title', 'Ils ont transformé leur espace'),
+);
+
+$final_cta = array(
+    'eyebrow'         => $acf_text('pds_final_cta_eyebrow', 'Studio de projet'),
+    'title'           => $acf_text('pds_final_cta_title', 'Votre projet mérite une surface bien préparée.'),
+    'text'            => $acf_text('pds_final_cta_text', 'Envoyez les premières informations : type de pièce, dimensions, style, découpes, crédence et contraintes. Nous vous aidons à cadrer un plan Dekton cohérent, esthétique et réalisable.'),
+    'primary_label'   => $acf_text('pds_final_cta_primary_button_label', 'Demander un devis'),
+    'primary_url'     => $acf_text('pds_final_cta_primary_button_url', '#devis'),
+    'secondary_label' => $acf_text('pds_final_cta_secondary_button_label', 'Explorer les matières'),
+    'secondary_url'   => $acf_text('pds_final_cta_secondary_button_url', '#matieres'),
+);
+
+$quote_form = array(
+    'eyebrow' => $acf_text('pds_quote_form_eyebrow', 'Demander un devis'),
+    'title'   => $acf_text('pds_quote_form_title', 'Un formulaire court pour préparer un devis utile.'),
+);
 ?>
 
+<?php if ($section_enabled('pds_hero_enabled')) : ?>
 <section class="hero section-dark" aria-labelledby="hero-title">
     <div class="hero-copy reveal">
-        <p class="eyebrow">Studio de surfaces premium</p>
-        <h1 id="hero-title"><span>Surface</span><span>nouvelle</span><span>génération</span></h1>
-        <p class="hero-lead">Des surfaces premium pour cuisines, îlots, salles de bain et projets architecturaux.</p>
+        <p class="eyebrow"><?php echo esc_html($hero['eyebrow']); ?></p>
+        <h1 id="hero-title"><span><?php echo esc_html($hero['title_line_1']); ?></span><span><?php echo esc_html($hero['title_line_2']); ?></span><span><?php echo esc_html($hero['title_line_3']); ?></span></h1>
+        <p class="hero-lead"><?php echo esc_html($hero['lead']); ?></p>
         <div class="hero-actions">
-            <a class="btn btn-primary" href="#devis">Demander un devis</a>
-            <a class="btn btn-secondary" href="#matieres">Explorer les matières</a>
+            <a class="btn btn-primary" href="<?php echo esc_url($hero['primary_url']); ?>"><?php echo esc_html($hero['primary_label']); ?></a>
+            <a class="btn btn-secondary" href="<?php echo esc_url($hero['secondary_url']); ?>"><?php echo esc_html($hero['secondary_label']); ?></a>
         </div>
         <dl class="hero-proof" aria-label="Points forts">
-            <div><dt>01</dt><dd>Étude du projet</dd></div>
-            <div><dt>02</dt><dd>Choix de finition</dd></div>
-            <div><dt>03</dt><dd>Devis accompagné</dd></div>
+            <?php foreach ($hero['proof_items'] as $index => $proof_item) : ?>
+                <div><dt><?php echo esc_html(str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT)); ?></dt><dd><?php echo esc_html((string) $proof_item); ?></dd></div>
+            <?php endforeach; ?>
         </dl>
     </div>
     <div class="hero-visual reveal slide-right">
-        <?php $picture('hero-dekton.jpg', 'Plan de travail Dekton sombre avec lumière chaude', '1920', '1280', array('fetchpriority' => 'high')); ?>
-        <div class="hero-material-tag">Dekton · plan de travail · îlot · crédence</div>
+        <?php $picture($hero['image'], 'Plan de travail Dekton sombre avec lumière chaude', '1920', '1280', array('fetchpriority' => 'high')); ?>
+        <div class="hero-material-tag"><?php echo esc_html($hero['material_tag']); ?></div>
         <div class="floating-card card-one"><span>Résistance</span> Chaleur</div>
         <div class="floating-card card-two"><span>Finition</span> Minérale</div>
         <div class="floating-card card-three"><span>Usage</span> Intérieur / extérieur</div>
@@ -132,17 +414,19 @@ $commitments = array(
         <span>Cuisine</span><span>Îlot central</span><span>Salle de bain</span><span>Crédence</span><span>Extérieur</span>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_surface_intelligence_enabled')) : ?>
 <section class="surface-intelligence pds-section" id="surface-intelligence" aria-labelledby="surface-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Surface Intelligence</p>
-        <h2 id="surface-title">Une surface pensée pour les espaces exigeants.</h2>
-        <p>Dekton permet de concevoir un plan esthétique et technique : dimensions, découpes, chants, crédence et intégration de l’évier doivent être anticipés dès le brief.</p>
+        <p class="eyebrow"><?php echo esc_html($surface['eyebrow']); ?></p>
+        <h2 id="surface-title"><?php echo esc_html($surface['title']); ?></h2>
+        <p><?php echo esc_html($surface['intro']); ?></p>
     </div>
     <div class="surface-intro reveal" aria-label="Indicateurs matière">
-        <span>Résistance quotidienne</span>
-        <span>Finition architecturale</span>
-        <span>Entretien facilité</span>
+        <?php foreach ($surface['badges'] as $badge) : ?>
+            <span><?php echo esc_html((string) $badge); ?></span>
+        <?php endforeach; ?>
     </div>
     <div class="tech-grid">
         <?php foreach ($features as $feature) : ?>
@@ -154,12 +438,14 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_commercial_proof_enabled')) : ?>
 <section class="commercial-proof pds-section" aria-labelledby="proof-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Accompagnement projet</p>
-        <h2 id="proof-title">Un plan Dekton se choisit avec précision.</h2>
-        <p>Au-delà de l’image, nous aidons à cadrer les éléments qui font la différence : usage, dimensions, finitions, contraintes techniques et rendu final.</p>
+        <p class="eyebrow"><?php echo esc_html($commercial['eyebrow']); ?></p>
+        <h2 id="proof-title"><?php echo esc_html($commercial['title']); ?></h2>
+        <p><?php echo esc_html($commercial['intro']); ?></p>
     </div>
     <div class="detail-grid">
         <?php foreach ($commitments as $commitment) : ?>
@@ -171,45 +457,42 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
     <div class="hero-actions reveal">
-        <a class="btn btn-primary" href="#devis">Préparer mon devis</a>
-        <a class="btn btn-secondary" href="#matieres">Comparer les matières</a>
+        <a class="btn btn-primary" href="<?php echo esc_url($commercial['primary_url']); ?>"><?php echo esc_html($commercial['primary_label']); ?></a>
+        <a class="btn btn-secondary" href="<?php echo esc_url($commercial['secondary_url']); ?>"><?php echo esc_html($commercial['secondary_label']); ?></a>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_material_scanner_enabled')) : ?>
 <section class="material-scanner pds-section section-band" id="matieres" aria-labelledby="scanner-title" data-scanner>
     <div class="scanner-copy reveal">
-        <p class="eyebrow">Material Scanner</p>
-        <h2 id="scanner-title">Analysez la surface idéale pour votre projet.</h2>
-        <p>Couleur, veinage, finition, épaisseur et usage quotidien : chaque choix influence le rendu, l’entretien et le budget final.</p>
+        <p class="eyebrow"><?php echo esc_html($scanner['eyebrow']); ?></p>
+        <h2 id="scanner-title"><?php echo esc_html($scanner['title']); ?></h2>
+        <p><?php echo esc_html($scanner['intro']); ?></p>
         <div class="scanner-note" data-scanner-panel>
-            <strong>Veinage</strong>
-            <span>Un effet minéral profond pour donner du caractère au plan de travail.</span>
+            <strong><?php echo esc_html($scanner['panel_title']); ?></strong>
+            <span><?php echo esc_html($scanner['panel_text']); ?></span>
         </div>
     </div>
     <div class="scanner-stage reveal">
-        <?php $picture('texture-noir-veine.jpg', 'Texture Dekton noire veinée analysée par points interactifs', '1200', '900', array('loading' => 'lazy')); ?>
+        <?php $picture($scanner['image'], 'Texture Dekton noire veinée analysée par points interactifs', '1200', '900', array('loading' => 'lazy')); ?>
         <?php
-        $points = array(
-            array('Veinage', '28%', '38%', 'Un effet minéral profond pour donner du caractère au plan de travail.'),
-            array('Finition', '58%', '25%', 'Une surface élégante pensée pour un rendu contemporain.'),
-            array('Résistance', '70%', '58%', 'Une matière adaptée aux usages exigeants du quotidien.'),
-            array('Ambiance', '36%', '70%', 'Une présence visuelle forte pour les cuisines premium.'),
-            array('Usage conseillé', '78%', '78%', 'Idéal pour plan de travail, îlot central, crédence ou projet sur mesure.'),
-        );
-        foreach ($points as $index => $point) :
+        foreach ($scanner['points'] as $index => $point) :
             ?>
-            <button class="scanner-point<?php echo 0 === $index ? ' is-active' : ''; ?>" style="--x: <?php echo esc_attr($point[1]); ?>; --y: <?php echo esc_attr($point[2]); ?>;" data-title="<?php echo esc_attr($point[0]); ?>" data-text="<?php echo esc_attr($point[3]); ?>">
-                <span><?php echo esc_html($point[0]); ?></span>
+            <button class="scanner-point<?php echo 0 === $index ? ' is-active' : ''; ?>" style="--x: <?php echo esc_attr($point['x'] ?? ''); ?>; --y: <?php echo esc_attr($point['y'] ?? ''); ?>;" data-title="<?php echo esc_attr($point['title'] ?? ''); ?>" data-text="<?php echo esc_attr($point['text'] ?? ''); ?>">
+                <span><?php echo esc_html($point['title'] ?? ''); ?></span>
             </button>
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_material_lab_enabled')) : ?>
 <section class="material-lab pds-section" aria-labelledby="lab-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Le laboratoire des matières</p>
-        <h2 id="lab-title">Un showroom digital pour comparer les signatures.</h2>
-        <p>Chaque finition raconte une ambiance : profondeur sombre, lumière minérale, béton urbain ou chaleur organique.</p>
+        <p class="eyebrow"><?php echo esc_html($material_lab['eyebrow']); ?></p>
+        <h2 id="lab-title"><?php echo esc_html($material_lab['title']); ?></h2>
+        <p><?php echo esc_html($material_lab['intro']); ?></p>
     </div>
     <div class="material-grid">
         <?php foreach ($materials as $material) : ?>
@@ -225,77 +508,83 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_moodboard_enabled')) : ?>
 <section class="moodboard pds-section section-band" id="ambiances" aria-labelledby="mood-title" data-moodboard>
     <div class="section-heading reveal">
-        <p class="eyebrow">Moodboard dynamique</p>
-        <h2 id="mood-title">Composez une ambiance, pas seulement un plan.</h2>
+        <p class="eyebrow"><?php echo esc_html($moodboard['eyebrow']); ?></p>
+        <h2 id="mood-title"><?php echo esc_html($moodboard['title']); ?></h2>
     </div>
     <div class="mood-layout reveal">
         <div class="mood-image">
-            <?php $picture('ambiance-obsidian.jpg', 'Moodboard Obsidian Luxury', '1600', '1100', array('data-mood-image' => '', 'loading' => 'lazy')); ?>
+            <?php $picture($active_mood_image, 'Moodboard Obsidian Luxury', '1600', '1100', array('data-mood-image' => '', 'loading' => 'lazy')); ?>
         </div>
         <div class="mood-panel">
             <div class="tab-list" role="tablist" aria-label="Moodboards">
-                <button class="is-active" type="button" data-mood="obsidian">Obsidian Luxury</button>
-                <button type="button" data-mood="mineral">Mineral White</button>
-                <button type="button" data-mood="urban">Urban Stone</button>
+                <?php foreach ($moodboard['tabs'] as $index => $tab) : ?>
+                    <button<?php echo 0 === $index ? ' class="is-active"' : ''; ?> type="button" data-mood="<?php echo esc_attr($tab['key'] ?? ''); ?>"><?php echo esc_html($tab['title'] ?? ''); ?></button>
+                <?php endforeach; ?>
             </div>
-            <h3 data-mood-title>Obsidian Luxury</h3>
-            <p data-mood-style>luxe architectural</p>
+            <h3 data-mood-title><?php echo esc_html($active_mood['title'] ?? 'Obsidian Luxury'); ?></h3>
+            <p data-mood-style><?php echo esc_html($active_mood['style'] ?? 'luxe architectural'); ?></p>
             <dl class="mood-specs" data-mood-specs>
-                <div><dt>Plan</dt><dd>noir veiné</dd></div><div><dt>Meuble</dt><dd>noyer</dd></div><div><dt>Métal</dt><dd>bronze</dd></div><div><dt>Mur</dt><dd>graphite</dd></div><div><dt>Lumière</dt><dd>chaude</dd></div>
+                <?php foreach (($active_mood['specs'] ?? array('Plan' => 'noir veiné', 'Meuble' => 'noyer', 'Métal' => 'bronze', 'Mur' => 'graphite', 'Lumière' => 'chaude')) as $label => $value) : ?>
+                    <div><dt><?php echo esc_html($label); ?></dt><dd><?php echo esc_html($value); ?></dd></div>
+                <?php endforeach; ?>
             </dl>
-            <div class="swatches" data-mood-swatches><span style="--swatch:#030303"></span><span style="--swatch:#5A3E2B"></span><span style="--swatch:#8A6A3F"></span><span style="--swatch:#1D1D1B"></span></div>
+            <div class="swatches" data-mood-swatches><?php foreach (($active_mood['swatches'] ?? array('#030303', '#5A3E2B', '#8A6A3F', '#1D1D1B')) as $swatch) : ?><span style="--swatch:<?php echo esc_attr($swatch); ?>"></span><?php endforeach; ?></div>
         </div>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_project_configurator_enabled')) : ?>
 <section class="project-configurator pds-section" aria-labelledby="config-title" data-configurator>
     <div class="section-heading reveal">
-        <p class="eyebrow">Configurateur de projet</p>
-        <h2 id="config-title">Quel plan Dekton correspond à votre espace ?</h2>
+        <p class="eyebrow"><?php echo esc_html($configurator['eyebrow']); ?></p>
+        <h2 id="config-title"><?php echo esc_html($configurator['title']); ?></h2>
     </div>
     <div class="configurator-grid reveal">
         <?php
-        $steps = array(
-            'project' => array('Quel est votre projet ?', array('Cuisine', 'Îlot central', 'Salle de bain', 'Extérieur')),
-            'style'   => array('Quel style préférez-vous ?', array('Sombre', 'Clair', 'Pierre', 'Béton', 'Métal')),
-            'mood'    => array('Quelle ambiance recherchez-vous ?', array('Luxe', 'Minimaliste', 'Naturelle', 'Industrielle')),
-        );
-        foreach ($steps as $key => $step) :
+        foreach ($configurator['questions'] as $step) :
+            $key = $step['key'] ?? '';
             ?>
             <fieldset class="choice-group">
-                <legend><?php echo esc_html($step[0]); ?></legend>
-                <?php foreach ($step[1] as $choice) : ?>
+                <legend><?php echo esc_html($step['question'] ?? ''); ?></legend>
+                <?php foreach (($step['choices'] ?? array()) as $choice) : ?>
                     <button type="button" data-config="<?php echo esc_attr($key); ?>" data-value="<?php echo esc_attr($choice); ?>"><?php echo esc_html($choice); ?></button>
                 <?php endforeach; ?>
             </fieldset>
         <?php endforeach; ?>
     </div>
     <div class="recommendation reveal" data-config-result>
-        Votre ambiance recommandée : <strong>Obsidian Luxury</strong>
-        <a class="btn btn-primary" href="#devis">Demander un devis pour cette ambiance</a>
+        <?php echo esc_html(str_replace('Obsidian Luxury', '', $configurator['default_result'])); ?><strong>Obsidian Luxury</strong>
+        <a class="btn btn-primary" href="<?php echo esc_url($configurator['button_url']); ?>"><?php echo esc_html($configurator['button_label']); ?></a>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_before_choice_enabled')) : ?>
 <section class="before-choice pds-section section-calm" aria-labelledby="before-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Avant de choisir votre plan Dekton</p>
-        <h2 id="before-title">Quatre questions pour préparer un devis précis.</h2>
+        <p class="eyebrow"><?php echo esc_html($before_choice['eyebrow']); ?></p>
+        <h2 id="before-title"><?php echo esc_html($before_choice['title']); ?></h2>
     </div>
     <div class="question-grid">
-        <?php foreach (array('Quelles dimensions approximatives ?', 'Évier, plaque ou prises à intégrer ?', 'Crédence assortie ou plan seul ?', 'Effet marbre, béton, pierre ou métal ?') as $question) : ?>
+        <?php foreach ($before_choice['questions'] as $question) : ?>
             <article class="question-card reveal"><span aria-hidden="true">✦</span><h3><?php echo esc_html($question); ?></h3></article>
         <?php endforeach; ?>
     </div>
-    <a class="btn btn-secondary reveal" href="#devis">Préparer mon devis</a>
+    <a class="btn btn-secondary reveal" href="<?php echo esc_url($before_choice['button_url']); ?>"><?php echo esc_html($before_choice['button_label']); ?></a>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_applications_enabled')) : ?>
 <section class="applications pds-section" id="applications" aria-labelledby="apps-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Une matière, plusieurs espaces</p>
-        <h2 id="apps-title">Des usages pensés comme des pièces de design.</h2>
+        <p class="eyebrow"><?php echo esc_html($applications_meta['eyebrow']); ?></p>
+        <h2 id="apps-title"><?php echo esc_html($applications_meta['title']); ?></h2>
     </div>
     <div class="application-grid">
         <?php foreach ($applications as $i => $app) : ?>
@@ -306,19 +595,16 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_signatures_enabled')) : ?>
 <section class="signatures pds-section section-band" aria-labelledby="signatures-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Signatures visuelles</p>
-        <h2 id="signatures-title">Trois directions artistiques fortes.</h2>
+        <p class="eyebrow"><?php echo esc_html($signatures_meta['eyebrow']); ?></p>
+        <h2 id="signatures-title"><?php echo esc_html($signatures_meta['title']); ?></h2>
     </div>
     <div class="signature-stack">
         <?php
-        $signatures = array(
-            array('01', 'Obsidian Luxury', 'Noir profond, veines dorées, bois noyer et lumière chaude pour une cuisine au caractère affirmé.', 'ambiance-obsidian.jpg'),
-            array('02', 'Mineral White', 'Blanc veiné, meubles clairs et lumière naturelle pour un espace lumineux, propre et intemporel.', 'ambiance-mineral.jpg'),
-            array('03', 'Urban Stone', 'Gris béton, noir mat et lignes tendues pour une atmosphère contemporaine et architecturale.', 'ambiance-urban.jpg'),
-        );
         foreach ($signatures as $signature) :
             ?>
             <article class="signature-card reveal">
@@ -328,14 +614,16 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_comparator_enabled')) : ?>
 <section class="comparator pds-section" aria-labelledby="compare-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Dekton vs surface classique</p>
-        <h2 id="compare-title">Les bons critères avant de choisir.</h2>
+        <p class="eyebrow"><?php echo esc_html($comparator['eyebrow']); ?></p>
+        <h2 id="compare-title"><?php echo esc_html($comparator['title']); ?></h2>
     </div>
     <div class="compare-grid reveal">
-        <?php foreach (array('chaleur', 'rayures', 'taches', 'extérieur', 'rendu esthétique', 'entretien') as $criterion) : ?>
+        <?php foreach ($comparator['criteria'] as $criterion) : ?>
             <article class="compare-row">
                 <h3><?php echo esc_html(ucfirst($criterion)); ?></h3>
                 <p><strong>Dekton</strong><span>Très performant si la pose, les découpes et l’entretien sont adaptés au projet.</span></p>
@@ -344,64 +632,66 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_process_enabled')) : ?>
 <section class="process pds-section section-band" id="processus" aria-labelledby="process-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">De l’idée à la surface finale</p>
-        <h2 id="process-title">Un déroulé clair, du brief à la pose.</h2>
+        <p class="eyebrow"><?php echo esc_html($process['eyebrow']); ?></p>
+        <h2 id="process-title"><?php echo esc_html($process['title']); ?></h2>
     </div>
     <ol class="timeline">
-        <?php foreach (array('Brief et dimensions', 'Choix du coloris', 'Validation des découpes', 'Prise de cotes précise', 'Fabrication du plan', 'Pose et finitions') as $i => $step) : ?>
+        <?php foreach ($process['steps'] as $i => $step) : ?>
             <li class="reveal"><span><?php echo esc_html(str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT)); ?></span><?php echo esc_html($step); ?></li>
         <?php endforeach; ?>
     </ol>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_details_enabled')) : ?>
 <section class="details pds-section" aria-labelledby="details-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Les détails invisibles font le luxe visible</p>
-        <h2 id="details-title">Les choix techniques qui changent le résultat.</h2>
+        <p class="eyebrow"><?php echo esc_html($details['eyebrow']); ?></p>
+        <h2 id="details-title"><?php echo esc_html($details['title']); ?></h2>
     </div>
     <div class="detail-grid">
-        <?php foreach (array('Épaisseur du plan', 'Type de chant', 'Finition mate ou satinée', 'Évier sous plan ou posé', 'Crédence assortie', 'Arrondis et découpes spéciales') as $detail) : ?>
+        <?php foreach ($details['items'] as $detail) : ?>
             <article class="detail-card reveal"><span aria-hidden="true">◇</span><h3><?php echo esc_html($detail); ?></h3><p>Un point à valider avant devis pour éviter les approximations et préciser la fabrication.</p></article>
         <?php endforeach; ?>
     </div>
     <div class="hero-actions reveal">
-        <a class="btn btn-primary" href="#devis">Valider ces détails</a>
-        <a class="btn btn-secondary" href="#processus">Voir le processus</a>
+        <a class="btn btn-primary" href="<?php echo esc_url($details['primary_url']); ?>"><?php echo esc_html($details['primary_label']); ?></a>
+        <a class="btn btn-secondary" href="<?php echo esc_url($details['secondary_url']); ?>"><?php echo esc_html($details['secondary_label']); ?></a>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_gallery_enabled')) : ?>
 <section class="gallery pds-section section-band" aria-labelledby="gallery-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Galerie d’inspirations</p>
-        <h2 id="gallery-title">Des cadrages pour se projeter.</h2>
+        <p class="eyebrow"><?php echo esc_html($gallery_meta['eyebrow']); ?></p>
+        <h2 id="gallery-title"><?php echo esc_html($gallery_meta['title']); ?></h2>
     </div>
     <div class="gallery-grid">
-        <?php foreach (array('Cuisine', 'Îlot', 'Salle de bain', 'Crédence', 'Détail matière', 'Extérieur') as $i => $label) : ?>
+        <?php foreach ($gallery as $i => $gallery_item) : ?>
+            <?php $label = $gallery_item[0]; ?>
             <figure class="gallery-item reveal">
-                <?php $picture('gallery-' . ($i + 1) . '.jpg', $label . ' avec surface Dekton', '1200', 1 === $i || 3 === $i || 5 === $i ? '900' : '1500', array('loading' => 'lazy')); ?>
+                <?php $picture($gallery_item[1], $label . ' avec surface Dekton', '1200', 1 === $i || 3 === $i || 5 === $i ? '900' : '1500', array('loading' => 'lazy')); ?>
                 <figcaption><?php echo esc_html($label); ?></figcaption>
             </figure>
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_faq_enabled')) : ?>
 <section class="faq pds-section" aria-labelledby="faq-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">Questions fréquentes</p>
-        <h2 id="faq-title">Les réponses utiles avant de demander un devis.</h2>
+        <p class="eyebrow"><?php echo esc_html($faq_meta['eyebrow']); ?></p>
+        <h2 id="faq-title"><?php echo esc_html($faq_meta['title']); ?></h2>
     </div>
     <div class="faq-list reveal" data-faq>
         <?php
-        $faqs = array(
-            'Quelles informations faut-il pour un devis ?' => 'Les dimensions approximatives, le type de projet, le style souhaité, les découpes prévues, la présence d’une crédence et vos contraintes de pose.',
-            'Dekton résiste-t-il à la chaleur ?' => 'Dekton offre une très bonne résistance à la chaleur dans les usages courants, mais le projet doit toujours être validé selon la pose et les contraintes réelles.',
-            'Peut-on intégrer un évier ou une plaque ?' => 'Oui, les découpes peuvent être prévues pour évier, plaque de cuisson, robinetterie ou prises, avec une validation technique avant fabrication.',
-            'Est-ce facile à entretenir ?' => 'Oui, l’entretien courant se fait avec de l’eau chaude, une éponge douce et un produit adapté, en évitant les gestes abrasifs inutiles.',
-            'Peut-on avoir un plan Dekton sur mesure ?' => 'Oui, le plan peut être étudié selon les dimensions, l’épaisseur, le type de chant, la finition, les découpes et la crédence souhaitée.',
-        );
         $faq_index = 0;
         foreach ($faqs as $question => $answer) :
             $faq_index++;
@@ -413,19 +703,16 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_testimonials_enabled')) : ?>
 <section class="testimonials pds-section section-band" id="avis" aria-labelledby="reviews-title">
     <div class="section-heading reveal">
-        <p class="eyebrow">4.9/5 · témoignages clients</p>
-        <h2 id="reviews-title">Ils ont transformé leur espace</h2>
+        <p class="eyebrow"><?php echo esc_html($testimonials_meta['eyebrow']); ?></p>
+        <h2 id="reviews-title"><?php echo esc_html($testimonials_meta['title']); ?></h2>
     </div>
     <div class="testimonial-grid">
         <?php
-        $reviews = array(
-            array('Nadia M.', 'Cuisine avec îlot central', 'Le rendu est élégant, solide et vraiment haut de gamme. Le plan a changé toute l’ambiance de la cuisine.'),
-            array('Thomas R.', 'Rénovation cuisine', 'Le plan Dekton apporte un style beaucoup plus moderne. La pièce paraît plus structurée et plus premium.'),
-            array('Sarah L.', 'Salle de bain', 'Le résultat est propre, contemporain et facile à entretenir. C’est exactement l’ambiance que je voulais.'),
-        );
         foreach ($reviews as $review) :
             ?>
             <article class="testimonial-card reveal">
@@ -438,20 +725,24 @@ $commitments = array(
         <?php endforeach; ?>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_final_cta_enabled')) : ?>
 <section class="final-cta pds-section" aria-labelledby="cta-title">
     <div class="final-cta-inner reveal">
-        <p class="eyebrow">Studio de projet</p>
-        <h2 id="cta-title">Votre projet mérite une surface bien préparée.</h2>
-        <p>Envoyez les premières informations : type de pièce, dimensions, style, découpes, crédence et contraintes. Nous vous aidons à cadrer un plan Dekton cohérent, esthétique et réalisable.</p>
-        <div class="hero-actions"><a class="btn btn-primary" href="#devis">Demander un devis</a><a class="btn btn-secondary" href="#matieres">Explorer les matières</a></div>
+        <p class="eyebrow"><?php echo esc_html($final_cta['eyebrow']); ?></p>
+        <h2 id="cta-title"><?php echo esc_html($final_cta['title']); ?></h2>
+        <p><?php echo esc_html($final_cta['text']); ?></p>
+        <div class="hero-actions"><a class="btn btn-primary" href="<?php echo esc_url($final_cta['primary_url']); ?>"><?php echo esc_html($final_cta['primary_label']); ?></a><a class="btn btn-secondary" href="<?php echo esc_url($final_cta['secondary_url']); ?>"><?php echo esc_html($final_cta['secondary_label']); ?></a></div>
     </div>
 </section>
+<?php endif; ?>
 
+<?php if ($section_enabled('pds_quote_form_enabled')) : ?>
 <section class="quote-form pds-section section-band" id="devis" aria-labelledby="quote-title" data-quote-form>
     <div class="section-heading reveal">
-        <p class="eyebrow">Demander un devis</p>
-        <h2 id="quote-title">Un formulaire court pour préparer un devis utile.</h2>
+        <p class="eyebrow"><?php echo esc_html($quote_form['eyebrow']); ?></p>
+        <h2 id="quote-title"><?php echo esc_html($quote_form['title']); ?></h2>
     </div>
     <form class="multi-form reveal" action="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" method="post" novalidate>
         <input type="hidden" name="action" value="pds_quote_request">
@@ -488,6 +779,7 @@ $commitments = array(
         </div>
     </form>
 </section>
+<?php endif; ?>
 
 <?php
 get_footer();

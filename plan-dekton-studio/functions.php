@@ -16,6 +16,8 @@ define('PDS_HOME_FOCUS_KEYPHRASE', 'plan de travail dekton');
 define('PDS_HOME_SEO_TITLE', 'Plan de travail Dekton sur mesure | Plan Dekton Studio');
 define('PDS_HOME_META_DESCRIPTION', 'Découvrez nos plans de travail Dekton sur mesure pour cuisine, îlot central, crédence, salle de bain et projets premium. Demandez un devis personnalisé.');
 
+require_once get_template_directory() . '/inc/section-admin.php';
+
 function pds_setup(): void
 {
     load_theme_textdomain('plan-dekton-studio', get_template_directory() . '/languages');
@@ -153,11 +155,16 @@ function pds_configure_cf7_form(int $form_id): void
 </div>
 FORM;
 
+    $quote_recipient = pds_home_meta('pds_quote_form_recipient_email', PDS_QUOTE_RECIPIENT);
+    if (! is_string($quote_recipient) || ! is_email($quote_recipient)) {
+        $quote_recipient = PDS_QUOTE_RECIPIENT;
+    }
+
     $mail = array(
         'subject'            => 'Nouvelle demande de devis Plan Dekton - [nom]',
         'sender'             => '[_site_title] <integration@top-one-position.fr>',
         'body'               => "Nouvelle demande de devis Plan Dekton Studio\n\nType de projet: [type_projet]\nStyle souhaité: [style_souhaite]\nNom: [nom]\nEmail: [email]\nTéléphone: [telephone]\nDimensions: [dimensions]\n\nMessage:\n[message]\n\nPage source: [_site_url]",
-        'recipient'          => PDS_QUOTE_RECIPIENT,
+        'recipient'          => $quote_recipient,
         'additional_headers' => 'Reply-To: [nom] <[email]>',
         'attachments'        => '',
         'use_html'           => 0,
@@ -550,6 +557,14 @@ add_filter('nav_menu_link_attributes', 'pds_normalize_section_menu_links');
 
 function pds_handle_quote_request(): void
 {
+    $quote_recipient = pds_home_meta('pds_quote_form_recipient_email', PDS_QUOTE_RECIPIENT);
+    if (! is_string($quote_recipient) || ! is_email($quote_recipient)) {
+        $quote_recipient = PDS_QUOTE_RECIPIENT;
+    }
+
+    $quote_success_message = pds_home_meta('pds_quote_form_success_message', __('Merci, votre demande a bien été envoyée. Nous revenons vers vous rapidement.', 'plan-dekton-studio'));
+    $quote_error_message   = pds_home_meta('pds_quote_form_error_message', __('L’envoi email a échoué. Merci de réessayer ou de nous contacter directement.', 'plan-dekton-studio'));
+
     if (! check_ajax_referer('pds_quote_request', 'pds_quote_nonce', false)) {
         wp_send_json_error(
             array('message' => __('La session a expiré. Merci de recharger la page puis de réessayer.', 'plan-dekton-studio')),
@@ -602,17 +617,17 @@ function pds_handle_quote_request(): void
         sprintf('Reply-To: %s <%s>', $nom, $email),
     );
 
-    $sent = wp_mail(PDS_QUOTE_RECIPIENT, $subject, $body, $headers);
+    $sent = wp_mail($quote_recipient, $subject, $body, $headers);
 
     if (! $sent) {
         wp_send_json_error(
-            array('message' => __('L’envoi email a échoué. Merci de réessayer ou de nous contacter directement.', 'plan-dekton-studio')),
+            array('message' => $quote_error_message),
             500
         );
     }
 
     wp_send_json_success(
-        array('message' => __('Merci, votre demande a bien été envoyée. Nous revenons vers vous rapidement.', 'plan-dekton-studio'))
+        array('message' => $quote_success_message)
     );
 }
 add_action('wp_ajax_pds_quote_request', 'pds_handle_quote_request');

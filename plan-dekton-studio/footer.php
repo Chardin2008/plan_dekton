@@ -28,7 +28,7 @@
             <h2><?php esc_html_e('Contact', 'plan-dekton-studio'); ?></h2>
             <ul class="footer-list">
                 <li><a href="<?php echo esc_url(home_url('/#devis')); ?>"><?php esc_html_e('Demander un devis', 'plan-dekton-studio'); ?></a></li>
-                <li><a href="mailto:hello@mpc.contact">hello@mpc.contact</a></li>
+                <li><a href="mailto:contact@plan-dekton.fr">contact@plan-dekton.fr</a></li>
                 <li><a href="tel:+33000000000">+33 0 00 00 00 00</a></li>
                 <li><?php esc_html_e('Réponse par email après étude du projet', 'plan-dekton-studio'); ?></li>
                 <li><?php esc_html_e('Paris / Île-de-France', 'plan-dekton-studio'); ?></li>

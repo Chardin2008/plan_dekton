@@ -1,12 +1,12 @@
-name: plandekton
+name: plandekton_v2
 
 services:
   wordpress:
     image: wordpress:php8.2-apache
-    container_name: plandekton_wordpress
+    container_name: plandekton_v2_wordpress
     restart: unless-stopped
     ports:
-      - "8090:80"
+      - "8092:80"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME:-plandekton_wp}
@@ -20,7 +20,7 @@ services:
 
   db:
     image: mariadb:11
-    container_name: plandekton_db
+    container_name: plandekton_v2_db
     restart: unless-stopped
     environment:
       MARIADB_DATABASE: ${WORDPRESS_DB_NAME:-plandekton_wp}
@@ -48,6 +48,6 @@ services:
 
 volumes:
   wordpress_data:
-    name: plandekton_wordpress_data
+    name: plandekton_v2_wordpress_data
   db_data:
-    name: plandekton_db_data
+    name: plandekton_v2_db_data
