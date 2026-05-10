@@ -17,6 +17,7 @@ define('PDS_HOME_SEO_TITLE', 'Plan de travail Dekton sur mesure | Plan Dekton St
 define('PDS_HOME_META_DESCRIPTION', 'Découvrez nos plans de travail Dekton sur mesure pour cuisine, îlot central, crédence, salle de bain et projets premium. Demandez un devis personnalisé.');
 
 require_once get_template_directory() . '/inc/section-admin.php';
+require_once get_template_directory() . '/inc/home-render.php';
 
 function pds_setup(): void
 {
@@ -120,40 +121,87 @@ function pds_get_cf7_form_id(): int
     return (int) $form_id;
 }
 
+function pds_cf7_form_text(string $key, string $fallback): string
+{
+    $value = pds_home_meta($key, $fallback);
+
+    return is_string($value) && '' !== trim($value) ? sanitize_text_field($value) : $fallback;
+}
+
+function pds_cf7_form_list(string $key, array $fallback): array
+{
+    $value = pds_home_meta($key, '');
+    if (! is_string($value) || '' === trim($value)) {
+        return $fallback;
+    }
+
+    $items = pds_decode_json_array($value);
+    $items = array_values(array_filter(array_map('sanitize_text_field', array_map('strval', $items))));
+
+    return $items ?: $fallback;
+}
+
+function pds_cf7_radio_options_markup(array $options): string
+{
+    $markup = '';
+    foreach ($options as $option) {
+        $markup .= ' "' . str_replace('"', '&quot;', sanitize_text_field((string) $option)) . '"';
+    }
+
+    return $markup;
+}
+
 function pds_configure_cf7_form(int $form_id): void
 {
     if ($form_id <= 0) {
         return;
     }
 
-    $form = <<<'FORM'
-<label class="form-honeypot" aria-hidden="true" tabindex="-1">Site web [text site_web autocomplete:off]</label>
-<div class="form-progress"><span data-form-step-label>Étape 1 / 3</span><i data-form-progress></i></div>
+    $form = sprintf(
+        <<<'FORM'
+<label class="form-honeypot" aria-hidden="true" tabindex="-1">%1$s [text site_web autocomplete:off]</label>
+<div class="form-progress"><span data-form-step-label>%2$s</span><i data-form-progress></i></div>
 <fieldset class="form-step is-active" data-step="0">
-    <legend>Type de projet</legend>
-    [radio* type_projet use_label_element "Cuisine" "Îlot central" "Salle de bain" "Extérieur" "Autre"]
+    <legend>%3$s</legend>
+    [radio* type_projet use_label_element%4$s]
 </fieldset>
 <fieldset class="form-step" data-step="1">
-    <legend>Style souhaité</legend>
-    [radio* style_souhaite use_label_element "Noir veiné" "Blanc marbré" "Gris béton" "Pierre naturelle" "Métal oxydé"]
+    <legend>%5$s</legend>
+    [radio* style_souhaite use_label_element%6$s]
 </fieldset>
 <fieldset class="form-step" data-step="2">
-    <legend>Informations</legend>
+    <legend>%7$s</legend>
     <div class="field-grid">
-        <label>Nom [text* nom autocomplete:name]</label>
-        <label>Email [email* email autocomplete:email]</label>
-        <label>Téléphone [tel telephone autocomplete:tel]</label>
-        <label>Dimensions approximatives [text dimensions]</label>
-        <label class="wide">Message [textarea message rows:5]</label>
+        <label>%8$s [text* nom autocomplete:name]</label>
+        <label>%9$s [email* email autocomplete:email]</label>
+        <label>%10$s [tel telephone autocomplete:tel]</label>
+        <label>%11$s [text dimensions]</label>
+        <label class="wide">%12$s [textarea message rows:5]</label>
     </div>
 </fieldset>
 <p class="form-message" data-form-message aria-live="polite"></p>
 <div class="form-actions">
-    <button class="btn btn-secondary" type="button" data-prev>Précédent</button>
-    <button class="btn btn-primary" type="button" data-next>Suivant</button>
-    [submit class:btn class:btn-primary "Préparer la demande"]
+    <button class="btn btn-secondary" type="button" data-prev>%13$s</button>
+    <button class="btn btn-primary" type="button" data-next>%14$s</button>
+    [submit class:btn class:btn-primary "%15$s"]
 </div>
-FORM;
+FORM,
+        pds_cf7_form_text('pds_quote_form_honeypot_label', 'Site web'),
+        pds_cf7_form_text('pds_quote_form_progress_label', 'Étape 1 / 3'),
+        pds_cf7_form_text('pds_quote_form_project_legend', 'Type de projet'),
+        pds_cf7_radio_options_markup(pds_cf7_form_list('pds_quote_form_project_options', array('Cuisine', 'Îlot central', 'Salle de bain', 'Extérieur', 'Autre'))),
+        pds_cf7_form_text('pds_quote_form_style_legend', 'Style souhaité'),
+        pds_cf7_radio_options_markup(pds_cf7_form_list('pds_quote_form_style_options', array('Noir veiné', 'Blanc marbré', 'Gris béton', 'Pierre naturelle', 'Métal oxydé'))),
+        pds_cf7_form_text('pds_quote_form_info_legend', 'Informations'),
+        pds_cf7_form_text('pds_quote_form_name_label', 'Nom'),
+        pds_cf7_form_text('pds_quote_form_email_label', 'Email'),
+        pds_cf7_form_text('pds_quote_form_phone_label', 'Téléphone'),
+        pds_cf7_form_text('pds_quote_form_dimensions_label', 'Dimensions approximatives'),
+        pds_cf7_form_text('pds_quote_form_message_label', 'Message'),
+        pds_cf7_form_text('pds_quote_form_prev_label', 'Précédent'),
+        pds_cf7_form_text('pds_quote_form_next_label', 'Suivant'),
+        pds_cf7_form_text('pds_quote_form_submit_label', 'Préparer la demande')
+    );
 
     $quote_recipient = pds_home_meta('pds_quote_form_recipient_email', PDS_QUOTE_RECIPIENT);
     if (! is_string($quote_recipient) || ! is_email($quote_recipient)) {
@@ -309,25 +357,8 @@ function pds_seed_homepage_if_missing(): void
         return;
     }
 
-    $cf7_form_id = pds_get_cf7_form_id();
-    $response    = wp_remote_get(
-        home_url('/'),
-        array(
-            'timeout'   => 20,
-            'sslverify' => false,
-        )
-    );
-
-    if (is_wp_error($response)) {
-        update_option('pds_homepage_seed_error', $response->get_error_message(), false);
-        return;
-    }
-
-    $content = pds_prepare_homepage_content((string) wp_remote_retrieve_body($response), $cf7_form_id);
-    if ('' === $content) {
-        update_option('pds_homepage_seed_error', 'Impossible de générer le contenu de la page Accueil.', false);
-        return;
-    }
+    pds_get_cf7_form_id();
+    $content = pds_home_block_content();
 
     $page_id = wp_insert_post(
         array(
@@ -514,37 +545,51 @@ function pds_logo_markup(string $context = 'header'): string
     }
 
     $label = 'footer' === $context ? __('Retour à l’accueil', 'plan-dekton-studio') : get_bloginfo('name');
+    $mark = pds_site_option('pds_logo_mark', 'D');
+    $primary = pds_site_option('pds_logo_primary', 'PLAN DEKTON');
+    $secondary = pds_site_option('pds_logo_secondary', 'STUDIO');
 
     return sprintf(
-        '<a class="site-logo" href="%1$s" aria-label="%2$s"><span class="logo-mark">D</span><span class="logo-text"><strong>PLAN DEKTON</strong><small>STUDIO</small></span></a>',
+        '<a class="site-logo" href="%1$s" aria-label="%2$s"><span class="logo-mark">%3$s</span><span class="logo-text"><strong>%4$s</strong><small>%5$s</small></span></a>',
         esc_url(home_url('/')),
-        esc_attr($label)
+        esc_attr($label),
+        esc_html($mark),
+        esc_html($primary),
+        esc_html($secondary)
     );
 }
 
 function pds_nav_fallback(): void
 {
-    $items = array(
-        home_url('/#top')          => __('Accueil', 'plan-dekton-studio'),
-        '#matieres'     => __('Matières', 'plan-dekton-studio'),
-        home_url('/#ambiances')    => __('Ambiances', 'plan-dekton-studio'),
-        home_url('/#applications') => __('Applications', 'plan-dekton-studio'),
-        home_url('/#processus')    => __('Processus', 'plan-dekton-studio'),
-        home_url('/#avis')         => __('Avis', 'plan-dekton-studio'),
-        home_url('/#devis')        => __('Devis', 'plan-dekton-studio'),
-    );
+    $items = pds_decode_json_array((string) pds_site_option('pds_fallback_menu_items', ''));
+    if (! $items) {
+        $items = array(
+            array('label' => __('Accueil', 'plan-dekton-studio'), 'url' => '/#top'),
+            array('label' => __('Matières', 'plan-dekton-studio'), 'url' => '/#matieres'),
+            array('label' => __('Ambiances', 'plan-dekton-studio'), 'url' => '/#ambiances'),
+            array('label' => __('Applications', 'plan-dekton-studio'), 'url' => '/#applications'),
+            array('label' => __('Processus', 'plan-dekton-studio'), 'url' => '/#processus'),
+            array('label' => __('Avis', 'plan-dekton-studio'), 'url' => '/#avis'),
+            array('label' => __('Devis', 'plan-dekton-studio'), 'url' => '/#devis'),
+        );
+    }
 
     echo '<ul class="menu">';
-    foreach ($items as $url => $label) {
-        if (str_starts_with($url, '#')) {
-            $url = home_url('/' . $url);
+    foreach ($items as $item) {
+        if (! is_array($item)) {
+            continue;
+        }
+
+        $url = pds_resolve_site_link((string) ($item['url'] ?? ''));
+        $label = (string) ($item['label'] ?? '');
+        if ('' === $url || '' === $label) {
+            continue;
         }
 
         printf('<li><a href="%s">%s</a></li>', esc_url($url), esc_html($label));
     }
     echo '</ul>';
 }
-
 function pds_normalize_section_menu_links(array $atts): array
 {
     if (! is_front_page() && ! empty($atts['href']) && str_starts_with($atts['href'], '#')) {
