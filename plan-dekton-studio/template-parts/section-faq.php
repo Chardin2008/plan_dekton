@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: FAQ
- * Slug: plan-dekton-studio/faq
- * Categories: plan-dekton-studio
+ * Template part: Section faq.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="faq pds-section" aria-labelledby="faq-title">
     <div class="section-heading reveal">
         <p class="eyebrow">Questions fréquentes</p>
@@ -34,4 +34,3 @@
             </article>
             </div>
 </section>
-<!-- /wp:html -->

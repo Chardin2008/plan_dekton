@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Accompagnement projet
- * Slug: plan-dekton-studio/commercial-proof
- * Categories: plan-dekton-studio
+ * Template part: Section avantages.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="commercial-proof pds-section" aria-labelledby="proof-title">
     <div class="section-heading reveal">
         <p class="eyebrow">Accompagnement projet</p>
@@ -34,4 +34,3 @@
         <a class="btn btn-secondary" href="#matieres">Comparer les matières</a>
     </div>
 </section>
-<!-- /wp:html -->

@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Avis clients
- * Slug: plan-dekton-studio/testimonials
- * Categories: plan-dekton-studio
+ * Template part: Section avis.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="testimonials pds-section section-band" id="avis" aria-labelledby="reviews-title">
     <div class="section-heading reveal">
         <p class="eyebrow">4.9/5 · témoignages clients</p>
@@ -35,4 +35,3 @@
             </article>
             </div>
 </section>
-<!-- /wp:html -->

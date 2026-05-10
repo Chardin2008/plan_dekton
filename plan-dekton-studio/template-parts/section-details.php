@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Détails premium
- * Slug: plan-dekton-studio/details
- * Categories: plan-dekton-studio
+ * Template part: Section details.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="details pds-section" aria-labelledby="details-title">
     <div class="section-heading reveal">
         <p class="eyebrow">Les détails invisibles font le luxe visible</p>
@@ -24,4 +24,3 @@
         <a class="btn btn-secondary" href="#processus">Voir le processus</a>
     </div>
 </section>
-<!-- /wp:html -->

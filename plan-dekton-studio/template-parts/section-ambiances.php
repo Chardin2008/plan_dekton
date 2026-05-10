@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Moodboard dynamique
- * Slug: plan-dekton-studio/moodboard
- * Categories: plan-dekton-studio
+ * Template part: Section ambiances.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="moodboard pds-section section-band" id="ambiances" aria-labelledby="mood-title" data-moodboard>
     <div class="section-heading reveal">
         <p class="eyebrow">Moodboard dynamique</p>
@@ -29,4 +29,3 @@
         </div>
     </div>
 </section>
-<!-- /wp:html -->

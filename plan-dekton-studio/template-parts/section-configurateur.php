@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Configurateur de projet
- * Slug: plan-dekton-studio/project-configurator
- * Categories: plan-dekton-studio
+ * Template part: Section configurateur.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="project-configurator pds-section" aria-labelledby="config-title" data-configurator>
     <div class="section-heading reveal">
         <p class="eyebrow">Configurateur de projet</p>
@@ -40,4 +40,3 @@
         <a class="btn btn-primary" href="#devis">Demander un devis pour cette ambiance</a>
     </div>
 </section>
-<!-- /wp:html -->

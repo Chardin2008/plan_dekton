@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Galerie immersive
- * Slug: plan-dekton-studio/gallery
- * Categories: plan-dekton-studio
+ * Template part: Section galerie.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="gallery pds-section section-band" aria-labelledby="gallery-title">
     <div class="section-heading reveal">
         <p class="eyebrow">Galerie d’inspirations</p>
@@ -32,4 +32,3 @@
             </figure>
             </div>
 </section>
-<!-- /wp:html -->

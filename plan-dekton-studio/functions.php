@@ -9,9 +9,10 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('PDS_THEME_VERSION', '1.0.21');
-define('PDS_QUOTE_RECIPIENT', 'hello@mpc.contact');
+define('PDS_THEME_VERSION', '1.0.23');
+define('PDS_QUOTE_RECIPIENT', 'chardinpoutcheu@gmail.com');
 define('PDS_CF7_FORM_TITLE', 'Demande de devis Plan Dekton');
+define('PDS_CF7_FORM_VERSION', 2);
 define('PDS_HOME_FOCUS_KEYPHRASE', 'plan de travail dekton');
 define('PDS_HOME_SEO_TITLE', 'Plan de travail Dekton sur mesure | Plan Dekton Studio');
 define('PDS_HOME_META_DESCRIPTION', 'Découvrez nos plans de travail Dekton sur mesure pour cuisine, îlot central, crédence, salle de bain et projets premium. Demandez un devis personnalisé.');
@@ -81,14 +82,21 @@ function pds_get_cf7_form_id(): int
 
     $stored_form_id = (int) get_option('pds_cf7_form_id');
     if ($stored_form_id > 0 && 'wpcf7_contact_form' === get_post_type($stored_form_id)) {
+        if ((int) get_option('pds_cf7_form_version') < PDS_CF7_FORM_VERSION) {
+            pds_configure_cf7_form($stored_form_id);
+            update_option('pds_cf7_form_configured', '1', false);
+            update_option('pds_cf7_form_version', PDS_CF7_FORM_VERSION, false);
+        }
+
         return $stored_form_id;
     }
 
     $existing = get_page_by_title(PDS_CF7_FORM_TITLE, OBJECT, 'wpcf7_contact_form');
     if ($existing instanceof WP_Post) {
-        if (! get_option('pds_cf7_form_configured')) {
+        if ((int) get_option('pds_cf7_form_version') < PDS_CF7_FORM_VERSION) {
             pds_configure_cf7_form((int) $existing->ID);
             update_option('pds_cf7_form_configured', '1', false);
+            update_option('pds_cf7_form_version', PDS_CF7_FORM_VERSION, false);
         }
 
         update_option('pds_cf7_form_id', (int) $existing->ID, false);
@@ -114,6 +122,7 @@ function pds_get_cf7_form_id(): int
     pds_configure_cf7_form((int) $form_id);
     update_option('pds_cf7_form_id', (int) $form_id, false);
     update_option('pds_cf7_form_configured', '1', false);
+    update_option('pds_cf7_form_version', PDS_CF7_FORM_VERSION, false);
 
     return (int) $form_id;
 }
@@ -129,11 +138,11 @@ function pds_configure_cf7_form(int $form_id): void
 <div class="form-progress"><span data-form-step-label>Étape 1 / 3</span><i data-form-progress></i></div>
 <fieldset class="form-step is-active" data-step="0">
     <legend>Type de projet</legend>
-    [radio* type_projet use_label_element "Cuisine" "Îlot central" "Salle de bain" "Extérieur" "Autre"]
+    [radio type_projet use_label_element "Cuisine" "Îlot central" "Salle de bain" "Extérieur" "Autre"]
 </fieldset>
 <fieldset class="form-step" data-step="1">
     <legend>Style souhaité</legend>
-    [radio* style_souhaite use_label_element "Noir veiné" "Blanc marbré" "Gris béton" "Pierre naturelle" "Métal oxydé"]
+    [radio style_souhaite use_label_element "Noir veiné" "Blanc marbré" "Gris béton" "Pierre naturelle" "Métal oxydé"]
 </fieldset>
 <fieldset class="form-step" data-step="2">
     <legend>Informations</legend>
@@ -231,25 +240,225 @@ function pds_quote_shortcode_markup(int $cf7_form_id): string
         return '';
     }
 
-    return "<!-- wp:shortcode -->\n[pds_quote_form]\n<!-- /wp:shortcode -->";
+    return "<!-- wp:plan-dekton/quote-form /-->";
 }
 
 function pds_quote_form_shortcode(): string
 {
-    $form_id = pds_get_cf7_form_id();
-    if ($form_id <= 0) {
-        return '';
+    if (pds_is_editor_context()) {
+        return pds_quote_form_editor_placeholder();
     }
 
-    return do_shortcode(
-        sprintf(
-            '[contact-form-7 id="%d" title="%s" html_class="multi-form reveal"]',
-            $form_id,
-            esc_attr(PDS_CF7_FORM_TITLE)
+    return pds_get_quote_form_markup();
+}
+add_shortcode('pds_quote_form', 'pds_quote_form_shortcode');
+
+function pds_is_editor_context(): bool
+{
+    if (is_admin() && ! wp_doing_ajax()) {
+        return true;
+    }
+
+    if (! defined('REST_REQUEST') || ! REST_REQUEST) {
+        return false;
+    }
+
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+    $referer     = isset($_SERVER['HTTP_REFERER']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_REFERER'])) : '';
+
+    return str_contains($request_uri, '/wp/v2/block-renderer')
+        || str_contains($request_uri, 'context=edit')
+        || str_contains($referer, '/wp-admin/');
+}
+
+function pds_quote_form_editor_placeholder(): string
+{
+    return '<div class="pds-editor-form-placeholder" role="note"><strong>Zone formulaire devis</strong><p>Le formulaire Contact Form 7 est rendu uniquement côté visiteur. Dans l’éditeur, cette zone reste volontairement simplifiée pour éviter l’affichage des balises techniques.</p></div>';
+}
+
+function pds_prevent_form_shortcode_preview_in_editor($return, string $tag)
+{
+    if (! pds_is_editor_context()) {
+        return $return;
+    }
+
+    if (in_array($tag, array('pds_quote_form', 'contact-form-7'), true)) {
+        return pds_quote_form_editor_placeholder();
+    }
+
+    return $return;
+}
+add_filter('pre_do_shortcode_tag', 'pds_prevent_form_shortcode_preview_in_editor', 10, 2);
+
+function pds_get_quote_form_markup(): string
+{
+    $form_id = pds_get_cf7_form_id();
+    if ($form_id > 0) {
+        return do_shortcode(
+            sprintf(
+                '[contact-form-7 id="%d" title="%s" html_class="multi-form reveal"]',
+                $form_id,
+                esc_attr(PDS_CF7_FORM_TITLE)
+            )
+        );
+    }
+
+    return pds_quote_fallback_form_markup();
+}
+
+function pds_quote_fallback_form_markup(): string
+{
+    ob_start();
+    ?>
+    <form class="multi-form reveal" action="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" method="post" novalidate>
+        <input type="hidden" name="action" value="pds_quote_request">
+        <?php wp_nonce_field('pds_quote_request', 'pds_quote_nonce'); ?>
+        <label class="form-honeypot" aria-hidden="true" tabindex="-1">Site web<input type="text" name="site_web" autocomplete="off" tabindex="-1"></label>
+        <div class="form-progress"><span data-form-step-label><?php esc_html_e('Etape 1 / 3', 'plan-dekton-studio'); ?></span><i data-form-progress></i></div>
+        <fieldset class="form-step is-active" data-step="0">
+            <legend><?php esc_html_e('Type de projet', 'plan-dekton-studio'); ?></legend>
+            <?php foreach (array('Cuisine', 'Ilot central', 'Salle de bain', 'Exterieur', 'Autre') as $option) : ?>
+                <label><input type="radio" name="type_projet" value="<?php echo esc_attr($option); ?>" required> <?php echo esc_html($option); ?></label>
+            <?php endforeach; ?>
+        </fieldset>
+        <fieldset class="form-step" data-step="1">
+            <legend><?php esc_html_e('Style souhaite', 'plan-dekton-studio'); ?></legend>
+            <?php foreach (array('Noir veine', 'Blanc marbre', 'Gris beton', 'Pierre naturelle', 'Metal oxyde') as $option) : ?>
+                <label><input type="radio" name="style_souhaite" value="<?php echo esc_attr($option); ?>" required> <?php echo esc_html($option); ?></label>
+            <?php endforeach; ?>
+        </fieldset>
+        <fieldset class="form-step" data-step="2">
+            <legend><?php esc_html_e('Informations', 'plan-dekton-studio'); ?></legend>
+            <div class="field-grid">
+                <label><?php esc_html_e('Nom', 'plan-dekton-studio'); ?><input type="text" name="nom" autocomplete="name" required></label>
+                <label><?php esc_html_e('Email', 'plan-dekton-studio'); ?><input type="email" name="email" autocomplete="email" required></label>
+                <label><?php esc_html_e('Telephone', 'plan-dekton-studio'); ?><input type="tel" name="telephone" autocomplete="tel"></label>
+                <label><?php esc_html_e('Dimensions approximatives', 'plan-dekton-studio'); ?><input type="text" name="dimensions"></label>
+                <label class="wide"><?php esc_html_e('Message', 'plan-dekton-studio'); ?><textarea name="message" rows="5"></textarea></label>
+            </div>
+        </fieldset>
+        <p class="form-message" data-form-message aria-live="polite"></p>
+        <div class="form-actions">
+            <button class="btn btn-secondary" type="button" data-prev><?php esc_html_e('Precedent', 'plan-dekton-studio'); ?></button>
+            <button class="btn btn-primary" type="button" data-next><?php esc_html_e('Suivant', 'plan-dekton-studio'); ?></button>
+            <button class="btn btn-primary" type="submit" data-submit><?php esc_html_e('Preparer la demande', 'plan-dekton-studio'); ?></button>
+        </div>
+    </form>
+    <?php
+    return (string) ob_get_clean();
+}
+
+function pds_render_quote_form_block(): string
+{
+    if (pds_is_editor_context()) {
+        return pds_quote_form_editor_placeholder();
+    }
+
+    return pds_get_quote_form_markup();
+}
+
+function pds_register_quote_form_block(): void
+{
+    register_block_type(
+        'plan-dekton/quote-form',
+        array(
+            'api_version'     => 2,
+            'title'           => __('Plan Dekton - Zone formulaire devis', 'plan-dekton-studio'),
+            'category'        => 'widgets',
+            'icon'            => 'email',
+            'render_callback' => 'pds_render_quote_form_block',
+            'supports'        => array(
+                'html'     => false,
+                'reusable' => true,
+            ),
         )
     );
 }
-add_shortcode('pds_quote_form', 'pds_quote_form_shortcode');
+add_action('init', 'pds_register_quote_form_block');
+
+function pds_enqueue_block_editor_assets(): void
+{
+    wp_enqueue_script(
+        'pds-editor-blocks',
+        get_theme_file_uri('assets/js/editor-blocks.js'),
+        array('wp-blocks', 'wp-element', 'wp-i18n'),
+        PDS_THEME_VERSION,
+        true
+    );
+}
+add_action('enqueue_block_editor_assets', 'pds_enqueue_block_editor_assets');
+
+function pds_render_front_page_fallback(): void
+{
+    $sections = array(
+        'section-hero',
+        'section-surface-intelligence',
+        'section-avantages',
+        'section-material-scanner',
+        'section-matieres',
+        'section-ambiances',
+        'section-configurateur',
+        'section-before-choice',
+        'section-applications',
+        'section-signatures',
+        'section-comparateur',
+        'section-processus',
+        'section-details',
+        'section-galerie',
+        'section-faq',
+        'section-avis',
+        'section-final-cta',
+        'section-devis',
+    );
+
+    foreach ($sections as $section) {
+        get_template_part('template-parts/' . $section);
+    }
+}
+
+function pds_get_homepage_pattern_content(): string
+{
+    $patterns = array(
+        'hero.php',
+        'surface-intelligence.php',
+        'avantages.php',
+        'material-scanner.php',
+        'matieres.php',
+        'ambiances.php',
+        'applications.php',
+        'comparateur.php',
+        'processus.php',
+        'galerie.php',
+        'avis.php',
+        'final-cta.php',
+        'devis.php',
+    );
+
+    $content = '';
+    foreach ($patterns as $pattern) {
+        $path = get_theme_file_path('patterns/' . $pattern);
+        if (! file_exists($path)) {
+            continue;
+        }
+
+        $pattern_content = (string) file_get_contents($path);
+        $pattern_content = preg_replace('/^<\?php.*?\?>\s*/s', '', $pattern_content) ?: $pattern_content;
+        $content        .= trim($pattern_content) . "\n\n";
+    }
+
+    return trim($content);
+}
+
+function pds_is_legacy_homepage_content(string $content): bool
+{
+    if ('' === trim($content)) {
+        return false;
+    }
+
+    return str_contains($content, '<section class="')
+        || str_contains($content, '<!-- wp:html -->')
+        || str_contains($content, '[pds_quote_form]');
+}
 
 function pds_configure_homepage_seo(int $page_id): void
 {
@@ -278,17 +487,28 @@ function pds_seed_homepage_if_missing(): void
 
     $front_page = get_page_by_path('accueil', OBJECT, 'page');
     if ($front_page instanceof WP_Post) {
-        $cf7_form_id = pds_get_cf7_form_id();
-        if ($cf7_form_id > 0 && str_contains($front_page->post_content, '<form class="multi-form reveal"')) {
-            $updated_content = preg_replace('/<form class="multi-form reveal".*?<\/form>/is', pds_quote_shortcode_markup($cf7_form_id), $front_page->post_content, 1);
+        $homepage_content = pds_get_homepage_pattern_content();
+        if (! get_option('pds_homepage_blocks_migrated') && pds_is_legacy_homepage_content($front_page->post_content) && '' !== $homepage_content) {
+            wp_update_post(
+                array(
+                    'ID'           => (int) $front_page->ID,
+                    'post_content' => $homepage_content,
+                )
+            );
+            update_option('pds_homepage_blocks_migrated', '1', false);
+        } else {
+            $cf7_form_id = pds_get_cf7_form_id();
+            if ($cf7_form_id > 0 && str_contains($front_page->post_content, '<form class="multi-form reveal"')) {
+                $updated_content = preg_replace('/<form class="multi-form reveal".*?<\/form>/is', pds_quote_shortcode_markup($cf7_form_id), $front_page->post_content, 1);
 
-            if (is_string($updated_content) && $updated_content !== $front_page->post_content) {
-                wp_update_post(
-                    array(
-                        'ID'           => (int) $front_page->ID,
-                        'post_content' => $updated_content,
-                    )
-                );
+                if (is_string($updated_content) && $updated_content !== $front_page->post_content) {
+                    wp_update_post(
+                        array(
+                            'ID'           => (int) $front_page->ID,
+                            'post_content' => $updated_content,
+                        )
+                    );
+                }
             }
         }
 
@@ -302,23 +522,10 @@ function pds_seed_homepage_if_missing(): void
         return;
     }
 
-    $cf7_form_id = pds_get_cf7_form_id();
-    $response    = wp_remote_get(
-        home_url('/'),
-        array(
-            'timeout'   => 20,
-            'sslverify' => false,
-        )
-    );
-
-    if (is_wp_error($response)) {
-        update_option('pds_homepage_seed_error', $response->get_error_message(), false);
-        return;
-    }
-
-    $content = pds_prepare_homepage_content((string) wp_remote_retrieve_body($response), $cf7_form_id);
+    pds_get_cf7_form_id();
+    $content = pds_get_homepage_pattern_content();
     if ('' === $content) {
-        update_option('pds_homepage_seed_error', 'Impossible de générer le contenu de la page Accueil.', false);
+        update_option('pds_homepage_seed_error', 'Impossible de generer le contenu Gutenberg de la page Accueil.', false);
         return;
     }
 
@@ -411,6 +618,10 @@ function pds_dequeue_unused_front_styles(): void
         return;
     }
 
+    if (is_singular() && has_blocks(get_post())) {
+        return;
+    }
+
     wp_dequeue_style('wp-block-library');
     wp_dequeue_style('global-styles');
     wp_dequeue_style('classic-theme-styles');
@@ -420,6 +631,11 @@ add_action('wp_enqueue_scripts', 'pds_dequeue_unused_front_styles', 100);
 function pds_register_patterns(): void
 {
     if (function_exists('register_block_pattern_category')) {
+        register_block_pattern_category(
+            'plan-dekton',
+            array('label' => __('Plan Dekton Sections', 'plan-dekton-studio'))
+        );
+
         register_block_pattern_category(
             'plan-dekton-studio',
             array('label' => __('Plan Dekton Studio', 'plan-dekton-studio'))

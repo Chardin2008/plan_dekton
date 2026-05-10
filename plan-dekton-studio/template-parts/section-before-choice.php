@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Avant de choisir
- * Slug: plan-dekton-studio/before-choice
- * Categories: plan-dekton-studio
+ * Template part: Section before choice.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="before-choice pds-section section-calm" aria-labelledby="before-title">
     <div class="section-heading reveal">
         <p class="eyebrow">Avant de choisir votre plan Dekton</p>
@@ -19,4 +19,3 @@
             </div>
     <a class="btn btn-secondary reveal" href="#devis">Préparer mon devis</a>
 </section>
-<!-- /wp:html -->

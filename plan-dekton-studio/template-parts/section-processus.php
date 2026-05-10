@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Processus
- * Slug: plan-dekton-studio/process
- * Categories: plan-dekton-studio
+ * Template part: Section processus.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="process pds-section section-band" id="processus" aria-labelledby="process-title">
     <div class="section-heading reveal">
         <p class="eyebrow">De l’idée à la surface finale</p>
@@ -20,4 +20,3 @@
                     <li class="reveal"><span>06</span>Pose et finitions</li>
             </ol>
 </section>
-<!-- /wp:html -->

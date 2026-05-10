@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Signatures visuelles
- * Slug: plan-dekton-studio/signatures
- * Categories: plan-dekton-studio
+ * Template part: Section matieres.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="material-lab pds-section" aria-labelledby="lab-title">
     <div class="section-heading reveal">
         <p class="eyebrow">Le laboratoire des matières</p>
@@ -63,4 +63,3 @@
             </article>
             </div>
 </section>
-<!-- /wp:html -->

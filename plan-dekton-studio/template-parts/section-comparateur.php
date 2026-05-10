@@ -1,11 +1,11 @@
 <?php
 /**
- * Title: Comparateur
- * Slug: plan-dekton-studio/comparator
- * Categories: plan-dekton-studio
+ * Template part: Section comparateur.
+ *
+ * @package PlanDektonStudio
  */
 ?>
-<!-- wp:html -->
+
 <section class="comparator pds-section" aria-labelledby="compare-title">
     <div class="section-heading reveal">
         <p class="eyebrow">Dekton vs surface classique</p>
@@ -44,4 +44,3 @@
             </article>
             </div>
 </section>
-<!-- /wp:html -->

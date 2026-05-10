@@ -1,34 +1,11 @@
 <?php
 /**
- * Title: Hero Plan Dekton Studio
- * Slug: plan-dekton-studio/hero
- * Categories: plan-dekton-studio
+ * Title: Plan Dekton - Hero
+ * Slug: plan-dekton/section-hero
+ * Categories: plan-dekton
  */
 ?>
-<!-- wp:html -->
-<section class="hero section-dark" aria-labelledby="hero-title">
-    <div class="hero-copy reveal">
-        <p class="eyebrow">Studio de surfaces premium</p>
-        <h1 id="hero-title"><span>Surface</span><span>nouvelle</span><span>génération</span></h1>
-        <p class="hero-lead">Des surfaces premium pour cuisines, îlots, salles de bain et projets architecturaux.</p>
-        <div class="hero-actions">
-            <a class="btn btn-primary" href="#devis">Demander un devis</a>
-            <a class="btn btn-secondary" href="#matieres">Explorer les matières</a>
-        </div>
-        <dl class="hero-proof" aria-label="Points forts">
-            <div><dt>01</dt><dd>Étude du projet</dd></div>
-            <div><dt>02</dt><dd>Choix de finition</dd></div>
-            <div><dt>03</dt><dd>Devis accompagné</dd></div>
-        </dl>
-    </div>
-    <div class="hero-visual reveal slide-right">
-        <picture><source srcset="/wp-content/themes/plan-dekton-studio/assets/img/hero-dekton.webp" type="image/webp"><img src="/wp-content/themes/plan-dekton-studio/assets/img/hero-dekton.jpg" alt="Plan de travail Dekton sombre avec lumière chaude" width="1717" height="916" fetchpriority="high" decoding="async"></picture>        <div class="hero-material-tag">Dekton · plan de travail · îlot · crédence</div>
-        <div class="floating-card card-one"><span>Résistance</span> Chaleur</div>
-        <div class="floating-card card-two"><span>Finition</span> Minérale</div>
-        <div class="floating-card card-three"><span>Usage</span> Intérieur / extérieur</div>
-    </div>
-    <div class="hero-keywords" aria-label="Applications principales">
-        <span>Cuisine</span><span>Îlot central</span><span>Salle de bain</span><span>Crédence</span><span>Extérieur</span>
-    </div>
-</section>
-<!-- /wp:html -->
+<!-- wp:group {"tagName":"section","className":"hero section-dark","layout":{"type":"constrained"},"metadata":{"name":"Hero Plan Dekton"}} -->
+<section class="wp-block-group hero section-dark"><!-- wp:group {"className":"hero-copy reveal","layout":{"type":"constrained"}} -->
+<div class="wp-block-group hero-copy reveal"><!-- wp:paragraph {"className":"eyebrow"} --><p class="eyebrow">Studio de surfaces premium</p><!-- /wp:paragraph --><!-- wp:heading {"level":1} --><h1>Surface<br>nouvelle<br>generation</h1><!-- /wp:heading --><!-- wp:paragraph {"className":"hero-lead"} --><p class="hero-lead">Des surfaces premium pour cuisines, ilots, salles de bain et projets architecturaux.</p><!-- /wp:paragraph --><!-- wp:buttons {"className":"hero-actions"} --><div class="wp-block-buttons hero-actions"><!-- wp:button {"className":"btn btn-primary"} --><div class="wp-block-button btn btn-primary"><a class="wp-block-button__link wp-element-button" href="#devis">Demander un devis</a></div><!-- /wp:button --><!-- wp:button {"className":"btn btn-secondary"} --><div class="wp-block-button btn btn-secondary"><a class="wp-block-button__link wp-element-button" href="#matieres">Explorer les matieres</a></div><!-- /wp:button --></div><!-- /wp:buttons --></div><!-- /wp:group --><!-- wp:group {"className":"hero-visual reveal slide-right","layout":{"type":"constrained"}} --><div class="wp-block-group hero-visual reveal slide-right"><!-- wp:image {"sizeSlug":"large"} --><figure class="wp-block-image size-large"><img src="/wp-content/themes/plan-dekton-studio/assets/img/hero-dekton.jpg" alt="Plan de travail Dekton sombre avec lumiere chaude"/></figure><!-- /wp:image --><!-- wp:paragraph {"className":"hero-material-tag"} --><p class="hero-material-tag">Dekton - plan de travail - ilot - credence</p><!-- /wp:paragraph --></div><!-- /wp:group --></section>
+<!-- /wp:group -->
