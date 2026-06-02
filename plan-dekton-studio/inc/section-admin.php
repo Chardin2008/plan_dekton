@@ -269,6 +269,23 @@ function pds_section_admin_config(): array
                 'pds_gallery_items' => array('label' => 'Images galerie', 'type' => 'repeater', 'columns' => array('label', 'image', 'image_id')),
             ),
         ),
+        'friend_sites' => array(
+            'title'  => 'Sites amis',
+            'fields' => array(
+                'pds_friend_sites_enabled' => array('label' => 'Section sites amis active', 'type' => 'checkbox', 'default' => '1'),
+                'pds_friend_sites_eyebrow' => array('label' => 'Sites amis eyebrow', 'type' => 'text', 'default' => 'Sites amis'),
+                'pds_friend_sites_title' => array('label' => 'Sites amis titre', 'type' => 'text', 'default' => 'Nos sites partenaires'),
+                'pds_friend_sites_intro' => array('label' => 'Sites amis intro', 'type' => 'textarea', 'default' => 'Retrouvez aussi nos ressources et sites specialises autour des plans de travail, de la cuisine et de l habitat.'),
+                'pds_friend_sites_links' => array('label' => 'Liens sites amis', 'type' => 'repeater', 'columns' => array('label', 'url'), 'default' => array(
+                    array('label' => 'plan-travail-ceramique.fr', 'url' => 'https://plan-travail-ceramique.fr/'),
+                    array('label' => 'plan-cuisine-granit.com', 'url' => 'https://plan-cuisine-granit.com/'),
+                    array('label' => 'plan-travail-quartz.fr', 'url' => 'https://plan-travail-quartz.fr/'),
+                    array('label' => 'vectonemobile.fr', 'url' => 'https://vectonemobile.fr/'),
+                    array('label' => 'education-actu.fr', 'url' => 'https://education-actu.fr/'),
+                    array('label' => 'Plan travail en Dekton', 'url' => 'https://meilleur-plan-cuisine.fr/plan-de-travail-et-cuisine/ceramique/plan-de-travail-en-dekton/'),
+                )),
+            ),
+        ),
         'faq_reviews_cta_form' => array(
             'title'  => 'FAQ, avis, CTA, formulaire',
             'fields' => array(

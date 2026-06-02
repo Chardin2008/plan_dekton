@@ -10,8 +10,12 @@ get_header();
 if (is_page() && have_posts()) {
     the_post();
 
-    if (trim(get_the_content()) !== '') {
+    $home_content = get_the_content();
+    if (trim($home_content) !== '') {
         the_content();
+        if (! str_contains($home_content, 'wp:plan-dekton-studio/friend-sites')) {
+            pds_render_home_sections(array('friend-sites'));
+        }
         get_footer();
         return;
     }

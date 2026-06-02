@@ -449,6 +449,20 @@ $quote_form = array(
     'next_label' => $home_text('pds_quote_form_next_label', 'Suivant'),
     'submit_label' => $home_text('pds_quote_form_submit_label', 'Préparer la demande'),
 );
+
+$friend_sites = array(
+    'eyebrow' => $home_text('pds_friend_sites_eyebrow', 'Sites amis'),
+    'title'   => $home_text('pds_friend_sites_title', 'Nos sites partenaires'),
+    'intro'   => $home_text('pds_friend_sites_intro', 'Retrouvez aussi nos ressources et sites specialises autour des plans de travail, de la cuisine et de l habitat.'),
+    'links'   => $home_json('pds_friend_sites_links', array(
+        array('label' => 'plan-travail-ceramique.fr', 'url' => 'https://plan-travail-ceramique.fr/'),
+        array('label' => 'plan-cuisine-granit.com', 'url' => 'https://plan-cuisine-granit.com/'),
+        array('label' => 'plan-travail-quartz.fr', 'url' => 'https://plan-travail-quartz.fr/'),
+        array('label' => 'vectonemobile.fr', 'url' => 'https://vectonemobile.fr/'),
+        array('label' => 'education-actu.fr', 'url' => 'https://education-actu.fr/'),
+        array('label' => 'Plan travail en Dekton', 'url' => 'https://meilleur-plan-cuisine.fr/plan-de-travail-et-cuisine/ceramique/plan-de-travail-en-dekton/'),
+    )),
+);
 ?>
 
 <?php if ($section_enabled('pds_hero_enabled') && pds_home_should_render_section('hero', $only_sections)) : ?>
@@ -849,6 +863,28 @@ $quote_form = array(
 </section>
 <?php endif; ?>
 
+<?php if ($section_enabled('pds_friend_sites_enabled') && pds_home_should_render_section('friend-sites', $only_sections)) : ?>
+<section class="friend-sites pds-section" aria-labelledby="friend-sites-title">
+    <div class="section-heading reveal">
+        <p class="eyebrow"><?php echo esc_html($friend_sites['eyebrow']); ?></p>
+        <h2 id="friend-sites-title"><?php echo esc_html($friend_sites['title']); ?></h2>
+        <p><?php echo esc_html($friend_sites['intro']); ?></p>
+    </div>
+    <ul class="friend-sites-list reveal">
+        <?php foreach ($friend_sites['links'] as $link) : ?>
+            <?php
+            $label = trim((string) ($link['label'] ?? ''));
+            $url   = trim((string) ($link['url'] ?? ''));
+            if ('' === $label || '' === $url) {
+                continue;
+            }
+            ?>
+            <li><a href="<?php echo esc_url(pds_resolve_site_link($url)); ?>"><?php echo esc_html($label); ?></a></li>
+        <?php endforeach; ?>
+    </ul>
+</section>
+<?php endif; ?>
+
 <?php
 }
 
@@ -873,6 +909,7 @@ function pds_home_block_sections(): array
         'testimonials'         => __('Temoignages', 'plan-dekton-studio'),
         'final-cta'            => __('CTA final', 'plan-dekton-studio'),
         'quote-form'           => __('Formulaire devis', 'plan-dekton-studio'),
+        'friend-sites'         => __('Sites amis', 'plan-dekton-studio'),
     );
 }
 
@@ -967,6 +1004,39 @@ function pds_ensure_homepage_uses_blocks(): void
     }
 }
 add_action('admin_init', 'pds_ensure_homepage_uses_blocks', 20);
+
+function pds_ensure_friend_sites_block_on_homepage(): void
+{
+    if (! is_admin() || wp_doing_ajax() || ! current_user_can('edit_pages')) {
+        return;
+    }
+
+    $page_id = pds_home_page_id();
+    if ($page_id <= 0) {
+        return;
+    }
+
+    $front_page = get_post($page_id);
+    if (! $front_page instanceof WP_Post) {
+        return;
+    }
+
+    $content = (string) $front_page->post_content;
+    if (str_contains($content, 'wp:plan-dekton-studio/friend-sites')) {
+        return;
+    }
+
+    $friend_sites_block = '<!-- wp:plan-dekton-studio/friend-sites /-->';
+    $content = '' === trim($content) ? pds_home_block_content() : trim($content) . "\n\n" . $friend_sites_block;
+
+    wp_update_post(
+        array(
+            'ID'           => $page_id,
+            'post_content' => $content,
+        )
+    );
+}
+add_action('admin_init', 'pds_ensure_friend_sites_block_on_homepage', 36);
 
 function pds_keep_homepage_editor_visible(): void
 {
